@@ -15,29 +15,8 @@
  * limitations under the License.
  */
 
-import { ActionRef, RouteRef, RuleRef } from '@alfresco/js-api';
-
-export interface ExtensionRef {
-    $id: string;
-    $name: string;
-    $version: string;
-    $vendor: string;
-    $license: string;
-    $runtime?: string;
-    $description?: string;
-    $dependencies?: Array<string>;
-
-    appConfig?: any;
-    rules?: Array<RuleRef>;
-    routes?: Array<RouteRef>;
-    actions?: Array<ActionRef>;
-
-    features?: {
-        [key: string]: any;
+export interface AppConfigPluginRef {
+    plugins: {
+        [key: string]: boolean;
     };
-}
-
-export interface ExtensionConfig extends ExtensionRef {
-    $references?: Array<string | ExtensionRef>;
-    $ignoreReferenceList?: Array<string>;
 }
