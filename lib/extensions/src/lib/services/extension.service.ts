@@ -25,7 +25,7 @@ import { RuleService } from './rule.service';
 import { ExtensionElement } from '../config/extension-element';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { mergeArrays, mergeObjects } from '../config/extension-utils';
-import { ActionRef, RouteRef, RuleRef } from '@alfresco/js-api';
+import { ActionRef, ExtensionComposition, RouteRef, RuleRef } from '@alfresco/js-api';
 
 // eslint-disable-next-line prefer-arrow/prefer-arrow-functions
 /**
@@ -35,7 +35,7 @@ import { ActionRef, RouteRef, RuleRef } from '@alfresco/js-api';
  */
 export function extensionJsonsFactory() {
     return [];
-};
+}
 
 export const EXTENSION_JSONS = new InjectionToken<string[][]>('extension-jsons', {
     providedIn: 'root',
@@ -60,7 +60,7 @@ export function provideExtensionConfig(jsons: string[]) {
         useValue: jsons,
         multi: true
     };
-};
+}
 
 /**
  * Provides the extension json raw values for the angular modules
@@ -74,7 +74,7 @@ export function provideExtensionConfigValues(extensionConfigValue: ExtensionConf
         useValue: extensionConfigValue,
         multi: true
     };
-};
+}
 
 @Injectable({
     providedIn: 'root'
@@ -109,19 +109,15 @@ export class ExtensionService {
      * @returns The loaded config data
      */
     async load(): Promise<ExtensionConfig> {
-        const config = await this.loader.load(
-            this.configPath,
-            this.pluginsPath,
-            this.extensionJsons.flat(),
-            this.extensionJsonValues.flat()
-        );
+        const config = await this.loader.load(this.configPath, this.pluginsPath, this.extensionJsons.flat(), this.extensionJsonValues.flat());
 
         this.setup(config);
         return config;
     }
 
-    appendConfig(partialConfig: ExtensionConfig) {
-        this.config = { ...this.config,
+    appendConfig(partialConfig: ExtensionComposition) {
+        this.config = {
+            ...this.config,
             rules: mergeArrays(this.config.rules, partialConfig.rules),
             features: mergeObjects(this.config.features, partialConfig.features),
             routes: mergeArrays(this.config.routes, partialConfig.routes),
@@ -220,9 +216,7 @@ export class ExtensionService {
      * @returns Array of auth guards or empty array if none were found
      */
     getAuthGuards(ids: string[]): Array<Type<any>> {
-        return (ids || [])
-            .map((id) => this.authGuards[id])
-            .filter((guard) => guard);
+        return (ids || []).map((id) => this.authGuards[id]).filter((guard) => guard);
     }
 
     /**
@@ -283,12 +277,12 @@ export class ExtensionService {
      * @param context Parameter object for the expression with details of app state
      * @returns Result of evaluated expression, if found, or the literal value otherwise
      */
-    runExpression(value: string | any , context?: any) {
-        if (typeof value === 'string' ) {
+    runExpression(value: string | any, context?: any) {
+        if (typeof value === 'string') {
             return this.evaluateExpression(value, context);
         } else {
             const duplicate = Object.assign({}, value);
-            Object.keys(duplicate).forEach( (key) => {
+            Object.keys(duplicate).forEach((key) => {
                 duplicate[key] = this.evaluateExpression(duplicate[key], context);
             });
             return duplicate;

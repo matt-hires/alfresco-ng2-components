@@ -15,10 +15,23 @@
  * limitations under the License.
  */
 
-export * from './product-version.model';
-export * from './comment.model';
-export * from './pagination.model';
-export * from './request-pagination.model';
-export * from './decimal-number.model';
-export * from './general-user.model';
-export * from './extension-info.model';
+import { ActionRef, RouteRef, RuleRef } from '@alfresco/js-api';
+
+export class ExtensionInfoModel {
+    $id: string;
+    $name: string;
+    $version: string;
+    $vendor: string;
+    $license: string;
+    $description?: string;
+    $dependencies?: Array<string>;
+    $compatibilities?: Array<string>;
+
+    extensionId: string;
+    rules?: Array<RuleRef>;
+    routes?: Array<RouteRef>;
+    actions?: Array<ActionRef>;
+    features?: {
+        [key: string]: any;
+    };
+}
