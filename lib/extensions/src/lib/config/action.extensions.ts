@@ -50,5 +50,5 @@ export interface ContentActionRef extends ExtensionElement {
 export interface ActionRef {
     id: string;
     type: string;
-    payload?: string;
+    payload?: any;
 }
