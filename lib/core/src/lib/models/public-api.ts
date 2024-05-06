@@ -22,3 +22,6 @@ export * from './request-pagination.model';
 export * from './decimal-number.model';
 export * from './general-user.model';
 export * from './extension-info.model';
+export * from './extension-composition';
+export * from './extension-composition-entry';
+export * from './app-config-plugin-ref';
