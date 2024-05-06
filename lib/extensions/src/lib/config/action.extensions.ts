@@ -46,3 +46,9 @@ export interface ContentActionRef extends ExtensionElement {
         visible?: string;
     };
 }
+
+export interface ActionRef {
+    id: string;
+    type: string;
+    payload?: string;
+}
