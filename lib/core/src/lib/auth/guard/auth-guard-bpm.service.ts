@@ -42,7 +42,7 @@ export class AuthGuardBpm extends AuthGuardBase {
     }
 
     async checkLogin(_: ActivatedRouteSnapshot, redirectUrl: string): Promise<boolean | UrlTree> {
-        if ((this.authenticationService.isBPMProvider() && this.authenticationService.isLoggedIn()) || this.withCredentials) {
+        if (this.authenticationService.isBpmLoggedIn() || this.withCredentials) {
             return true;
         }
         return this.redirectToUrl(redirectUrl);
