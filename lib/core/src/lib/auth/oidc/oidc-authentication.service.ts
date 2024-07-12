@@ -45,6 +45,10 @@ export class OidcAuthenticationService extends BaseAuthenticationService {
         super(appConfig, cookie);
     }
 
+    /**
+     * @deprecated use `isLoggedIn` instead
+     * @returns true if the ECM provider is logged in
+     */
     isEcmLoggedIn(): boolean {
         if (this.isECMProvider() || this.isALLProvider()) {
             return this.isLoggedIn();
@@ -52,6 +56,10 @@ export class OidcAuthenticationService extends BaseAuthenticationService {
         return false;
     }
 
+    /**
+     * @deprecated use `isLoggedIn` instead
+     * @returns true if the BPM provider is logged in
+     */
     isBpmLoggedIn(): boolean {
         if (this.isBPMProvider() || this.isALLProvider()) {
             return this.isLoggedIn();
