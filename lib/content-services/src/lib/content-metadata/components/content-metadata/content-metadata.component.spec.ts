@@ -15,12 +15,6 @@
  * limitations under the License.
  */
 
-import { ComponentFixture, discardPeriodicTasks, fakeAsync, flush, TestBed, tick } from '@angular/core/testing';
-import { SimpleChange } from '@angular/core';
-import { By } from '@angular/platform-browser';
-import { Category, CategoryPaging, ClassesApi, Node, Tag, TagBody, TagEntry, TagPaging, TagPagingList } from '@alfresco/js-api';
-import { ContentMetadataComponent } from './content-metadata.component';
-import { ContentMetadataService } from '../../services/content-metadata.service';
 import {
     AppConfigService,
     AuthModule,
@@ -30,21 +24,24 @@ import {
     NotificationService,
     UpdateNotification
 } from '@alfresco/adf-core';
-import { NodesApiService } from '../../../common/services/nodes-api.service';
-import { EMPTY, of, throwError } from 'rxjs';
-import { CardViewContentUpdateService } from '../../../common/services/card-view-content-update.service';
-import { PropertyGroup } from '../../interfaces/property-group.interface';
-import { PropertyDescriptorsService } from '../../services/property-descriptors.service';
-import { MatExpansionPanel } from '@angular/material/expansion';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { MatDialogModule } from '@angular/material/dialog';
-import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { Category, CategoryPaging, ClassesApi, Node, Tag, TagBody, TagEntry, TagPaging, TagPagingList } from '@alfresco/js-api';
 import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
+import { SimpleChange } from '@angular/core';
+import { ComponentFixture, discardPeriodicTasks, fakeAsync, flush, TestBed, tick } from '@angular/core/testing';
 import { MatChipHarness } from '@angular/material/chips/testing';
-import { TagService } from '../../../tag/services/tag.service';
-import { CategoryService } from '../../../category/services/category.service';
-import { TagsCreatorComponent, TagsCreatorMode } from '../../../tag';
-import { CategoriesManagementComponent, CategoriesManagementMode } from '../../../category';
+import { MatDialogModule } from '@angular/material/dialog';
+import { MatExpansionPanel } from '@angular/material/expansion';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { By } from '@angular/platform-browser';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { EMPTY, of, throwError } from 'rxjs';
+import { CategoriesManagementComponent, CategoriesManagementMode, CategoryService } from '../../../category';
+import { CardViewContentUpdateService, NodesApiService } from '../../../common';
+import { TagsCreatorComponent, TagsCreatorMode, TagService } from '../../../tag';
+import { PropertyGroup } from '../../interfaces/property-group.interface';
+import { ContentMetadataService } from '../../services/content-metadata.service';
+import { PropertyDescriptorsService } from '../../services/property-descriptors.service';
+import { ContentMetadataComponent } from './content-metadata.component';
 
 describe('ContentMetadataComponent', () => {
     let component: ContentMetadataComponent;
@@ -79,11 +76,16 @@ describe('ContentMetadataComponent', () => {
 
     const category1 = new Category({ id: 'test', name: 'testCat' });
     const category2 = new Category({ id: 'test2', name: 'testCat2' });
-    const categoryPagingResponse: CategoryPaging = { list: { pagination: {}, entries: [{ entry: category1 }, { entry: category2 }] } };
+    const categoryPagingResponse: CategoryPaging = {
+        list: {
+            pagination: {},
+            entries: [{ entry: category1 }, { entry: category2 }]
+        }
+    };
 
     const findTagElements = async (): Promise<string[]> => {
         const matChipHarnessList = await TestbedHarnessEnvironment.loader(fixture).getAllHarnesses(
-            MatChipHarness.with({ selector: '[data-automation-id="metadata-properties-tag-chip"]' })
+            MatChipHarness.with({ selector: '.adf-dynamic-chip-list-chip' })
         );
         const tags = [];
         for (const matChip of matChipHarnessList) {
@@ -284,7 +286,11 @@ describe('ContentMetadataComponent', () => {
         }));
 
         it('nodeAspectUpdate', fakeAsync(() => {
-            const fakeNode = { id: 'fake-minimal-node', aspectNames: ['ft:a', 'ft:b', 'ft:c'], name: 'fake-node' } as Node;
+            const fakeNode = {
+                id: 'fake-minimal-node',
+                aspectNames: ['ft:a', 'ft:b', 'ft:c'],
+                name: 'fake-node'
+            } as Node;
             getGroupedPropertiesSpy.and.stub();
             spyOn(contentMetadataService, 'getBasicProperties').and.stub();
             updateService.updateNodeAspect(fakeNode);
@@ -1189,7 +1195,10 @@ describe('ContentMetadataComponent', () => {
     describe('events', () => {
         it('should not propagate the event on left arrows press', () => {
             fixture.detectChanges();
-            const event = { keyCode: 37, stopPropagation: () => {} };
+            const event = {
+                keyCode: 37,
+                stopPropagation: () => {}
+            };
             spyOn(event, 'stopPropagation').and.stub();
             const element = fixture.debugElement.query(By.css('adf-card-view'));
             element.triggerEventHandler('keydown', event);
@@ -1198,7 +1207,10 @@ describe('ContentMetadataComponent', () => {
 
         it('should not propagate the event on right arrows press', () => {
             fixture.detectChanges();
-            const event = { keyCode: 39, stopPropagation: () => {} };
+            const event = {
+                keyCode: 39,
+                stopPropagation: () => {}
+            };
             spyOn(event, 'stopPropagation').and.stub();
             const element = fixture.debugElement.query(By.css('adf-card-view'));
             element.triggerEventHandler('keydown', event);
@@ -1207,7 +1219,10 @@ describe('ContentMetadataComponent', () => {
 
         it('should propagate the event on other keys press', () => {
             fixture.detectChanges();
-            const event = { keyCode: 40, stopPropagation: () => {} };
+            const event = {
+                keyCode: 40,
+                stopPropagation: () => {}
+            };
             spyOn(event, 'stopPropagation').and.stub();
             const element = fixture.debugElement.query(By.css('adf-card-view'));
             element.triggerEventHandler('keydown', event);
@@ -1336,7 +1351,8 @@ describe('ContentMetadataComponent', () => {
 
             toggleEditModeForTags();
             fixture.detectChanges();
-            expect(await findTagElements()).toHaveSize(0);
+            const noEditableTagsContainer = fixture.debugElement.query(By.css('div.adf-metadata-properties-tags'));
+            expect(noEditableTagsContainer).toBeNull();
         });
     });
 

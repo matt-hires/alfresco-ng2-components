@@ -16,6 +16,7 @@
  */
 
 import {
+    AdfStringsToChipsPipe,
     AppConfigService,
     CardViewBaseItemModel,
     CardViewComponent,
@@ -37,7 +38,6 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { TranslateModule } from '@ngx-translate/core';
 import { forkJoin, Observable, of, Subject, zip } from 'rxjs';
 import { catchError, debounceTime, map, takeUntil } from 'rxjs/operators';
-import { AdfStringsToChipsPipe } from '../../../../../../core/src/lib/dynamic-chip-list/adf-strings-to-chips.pipe';
 import { CategoriesManagementComponent, CategoriesManagementMode, CategoryService } from '../../../category';
 import { AllowableOperationsEnum, CardViewContentUpdateService, ContentService, NodesApiService } from '../../../common';
 import { TagsCreatorComponent, TagsCreatorMode, TagService } from '../../../tag';
