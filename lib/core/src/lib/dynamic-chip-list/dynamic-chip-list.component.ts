@@ -103,8 +103,10 @@ export class DynamicChipListComponent implements OnChanges, OnInit, AfterViewIni
     private viewMoreButtonLeftOffsetBeforeFlexDirection: number;
     private requestedDisplayingAllChips = false;
     private resizeObserver = new ResizeObserver(() => {
-        this.calculateChipsToDisplay();
-        this.changeDetectorRef.detectChanges();
+        if (this.limitChipsDisplayed && this.chipsToDisplay.length) {
+            this.calculateChipsToDisplay();
+            this.changeDetectorRef.detectChanges();
+        }
     });
 
     constructor(private changeDetectorRef: ChangeDetectorRef) {}
@@ -118,6 +120,7 @@ export class DynamicChipListComponent implements OnChanges, OnInit, AfterViewIni
         if (changes.chips) {
             this.initialChips = this.chips;
             this.chipsToDisplay = this.initialChips;
+            this.changeDetectorRef.detectChanges();
             if (this.limitChipsDisplayed && this.chipsToDisplay.length) {
                 setTimeout(() => {
                     this.calculateChipsToDisplay();
