@@ -26,6 +26,8 @@ $dialog-padding: 24px;
 .adf-medium-dialog-panel,
 .adf-alert-dialog-panel {
     min-width: calc(269px - $dialog-padding * 2);
+    border-radius: 8px;
+    overflow: hidden;
 
     @media screen and (max-width: $xxs-screen) {
         .adf-additional-actions {
@@ -112,14 +114,22 @@ $dialog-padding: 24px;
     }
 
     .adf-dialog-header {
-        position: relative;
         display: flex;
-        justify-content: space-between;
         align-items: center;
         padding-bottom: $dialog-padding;
 
         &.adf-centered-header {
             align-items: flex-start;
+        }
+
+        .adf-dialog-title-container {
+            flex: 1;
+
+            &.adf-centered-title {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
         }
 
         .adf-dialog-title {
@@ -175,6 +185,12 @@ $dialog-padding: 24px;
         padding-top: $dialog-padding;
         text-transform: capitalize;
         min-height: auto;
+
+        .adf-main-actions-container,
+        .adf-additional-actions-container {
+            display: flex;
+            column-gap: 8px;
+        }
     }
 
     &.adf-large {
@@ -269,16 +285,4 @@ $dialog-padding: 24px;
 
 .adf-additional-actions {
     color: var(--theme-primary-color);
-}
-
-// TODO: Update after migration to Angular 15
-/* stylelint-disable-next-line selector-class-pattern */
-.mat-dialog-actions .mat-button-base + .mat-button-base {
-    margin-left: 16px;
-}
-
-// TODO: Update after migration to Angular 15
-/* stylelint-disable-next-line selector-class-pattern */
-.mat-dialog-container {
-    border-radius: 8px;
 }
