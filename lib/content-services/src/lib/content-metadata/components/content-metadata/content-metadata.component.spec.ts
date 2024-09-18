@@ -178,14 +178,7 @@ describe('ContentMetadataComponent', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [
-                NoopAnimationsModule,
-                NoopTranslateModule,
-                AuthModule.forRoot({ useHash: true }),
-                MatDialogModule,
-                MatSnackBarModule,
-                ContentMetadataComponent
-            ],
+            imports: [ContentTestingModule, MatDialogModule, MatSnackBarModule, ContentMetadataComponent],
             providers: [
                 {
                     provide: TagService,
