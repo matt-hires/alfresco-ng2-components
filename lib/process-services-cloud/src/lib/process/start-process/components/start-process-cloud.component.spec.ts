@@ -49,7 +49,8 @@ import { ProcessServiceCloudTestingModule } from '../../../testing/process-servi
 import { ProcessNameCloudPipe } from '../../../pipes/process-name-cloud.pipe';
 import { ProcessInstanceCloud } from '../models/process-instance-cloud.model';
 import { ESCAPE } from '@angular/cdk/keycodes';
-import { ProcessDefinitionCloud, TaskVariableCloud } from '@alfresco/adf-process-services-cloud';
+import { ProcessDefinitionCloud } from '../../../models/process-definition-cloud.model';
+import { TaskVariableCloud } from '../../../form/models/task-variable-cloud.model';
 import { first } from 'rxjs/operators';
 import { HarnessLoader } from '@angular/cdk/testing';
 import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
@@ -777,6 +778,36 @@ describe('StartProcessCloudComponent', () => {
 
             startButton.triggerEventHandler('click', null);
             expect(startProcessSpy).toHaveBeenCalledWith(component.appName, payload);
+        });
+
+        it('should call service with the correct parameters when formCloud is defined and custom outcome is clicked', async () => {
+            formDefinitionSpy.and.returnValue(of(fakeFormModelJson));
+            component.ngOnChanges({ appName: firstChange });
+            component.processForm.controls['processInstanceName'].setValue('My Process 1');
+            component.appName = 'test app name';
+            component.formCloud = new FormModel(JSON.stringify(fakeFormModelJson));
+            component.formCloud.values = { dropdown: { id: '1', name: 'label 2' } };
+            component.processDefinitionCurrent = fakeProcessDefinitions[2];
+            component.processPayloadCloud.processDefinitionKey = fakeProcessDefinitions[2].key;
+
+            const payload: ProcessWithFormPayloadCloud = new ProcessWithFormPayloadCloud({
+                processName: component.processInstanceName.value,
+                processDefinitionKey: fakeProcessDefinitions[2].key,
+                variables: {},
+                values: component.formCloud.values,
+                outcome: 'custom_outcome'
+            });
+
+            fixture.detectChanges();
+
+            component.onCustomOutcomeClicked('custom_outcome');
+
+            expect(startProcessWithFormSpy).toHaveBeenCalledWith(
+                component.appName,
+                fakeProcessDefinitions[2].formKey,
+                fakeProcessDefinitions[2].version,
+                payload
+            );
         });
 
         it('should call service with the correct parameters when variables are undefined and formCloud is defined', async () => {
