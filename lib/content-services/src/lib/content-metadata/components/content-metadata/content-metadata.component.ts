@@ -150,6 +150,7 @@ export class ContentMetadataComponent implements OnChanges, OnInit, OnDestroy {
     basicProperties$: Observable<CardViewItem[]>;
     groupedProperties$: Observable<CardViewGroup[]>;
 
+    tagsToDisplay: Chip[];
     changedProperties = {};
     hasMetadataChanged = false;
     assignedCategories: Category[] = [];
@@ -210,14 +211,15 @@ export class ContentMetadataComponent implements OnChanges, OnInit, OnDestroy {
         return this._assignedTags;
     }
 
-    get tags(): string[] {
-        return this._tags;
-    }
-
-    get tagsToDisplay(): Chip[] {
-        return this._tags.map((tag) => {
+    set tags(tags: string[]) {
+        this._tags = tags;
+        this.tagsToDisplay = this._tags.map((tag) => {
             return { id: tag, name: tag };
         });
+    }
+
+    get tags(): string[] {
+        return this._tags;
     }
 
     get tagsCreatorMode(): TagsCreatorMode {
@@ -313,7 +315,8 @@ export class ContentMetadataComponent implements OnChanges, OnInit, OnDestroy {
      * @param tags array of tags to register, they are not saved yet until we click save button.
      */
     storeTagsToAssign(tags: string[]) {
-        this._tags = tags;
+        this.tags = tags;
+        this._assignedTags = tags;
         this.hasMetadataChanged = true;
     }
 
@@ -516,8 +519,8 @@ export class ContentMetadataComponent implements OnChanges, OnInit, OnDestroy {
     private loadTagsForNode(id: string) {
         this.tagService.getTagsByNodeId(id).subscribe((tagPaging) => {
             this.assignedTagsEntries = tagPaging.list.entries;
-            this._tags = tagPaging.list.entries.map((tagEntry) => tagEntry.entry.tag);
-            this._assignedTags = [...this._tags];
+            this.tags = tagPaging.list.entries.map((tagEntry) => tagEntry.entry.tag);
+            this._assignedTags = [...this.tags];
         });
     }
 

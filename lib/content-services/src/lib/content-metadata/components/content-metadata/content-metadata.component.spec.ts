@@ -15,15 +15,7 @@
  * limitations under the License.
  */
 
-import {
-    AppConfigService,
-    AuthModule,
-    CardViewBaseItemModel,
-    CardViewComponent,
-    NoopTranslateModule,
-    NotificationService,
-    UpdateNotification
-} from '@alfresco/adf-core';
+import { AppConfigService, CardViewBaseItemModel, CardViewComponent, NotificationService, UpdateNotification } from '@alfresco/adf-core';
 import { Category, CategoryPaging, ClassesApi, Node, Tag, TagBody, TagEntry, TagPaging, TagPagingList } from '@alfresco/js-api';
 import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
 import { SimpleChange } from '@angular/core';
@@ -33,11 +25,11 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatExpansionPanel } from '@angular/material/expansion';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { By } from '@angular/platform-browser';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { EMPTY, of, throwError } from 'rxjs';
 import { CategoriesManagementComponent, CategoriesManagementMode, CategoryService } from '../../../category';
 import { CardViewContentUpdateService, NodesApiService } from '../../../common';
 import { TagsCreatorComponent, TagsCreatorMode, TagService } from '../../../tag';
+import { ContentTestingModule } from '../../../testing/content.testing.module';
 import { PropertyGroup } from '../../interfaces/property-group.interface';
 import { ContentMetadataService } from '../../services/content-metadata.service';
 import { PropertyDescriptorsService } from '../../services/property-descriptors.service';
