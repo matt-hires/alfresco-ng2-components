@@ -213,9 +213,7 @@ export class ContentMetadataComponent implements OnChanges, OnInit, OnDestroy {
 
     set tags(tags: string[]) {
         this._tags = tags;
-        this.tagsToDisplay = this.tags.map((tag) => {
-            return { id: tag, name: tag };
-        });
+        this.tagsToDisplay = this.tags.map((tag) => ({ id: tag, name: tag }));
     }
 
     get tags(): string[] {
