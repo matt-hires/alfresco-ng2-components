@@ -19,9 +19,10 @@ import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, OnDes
 import { Observable, Subject } from 'rxjs';
 import { ProcessFilterCloudService } from '../services/process-filter-cloud.service';
 import { ProcessFilterCloudModel } from '../models/process-filter-cloud.model';
-import { TranslationService } from '@alfresco/adf-core';
+import { AppConfigService, TranslationService } from '@alfresco/adf-core';
 import { FilterParamsModel } from '../../../task/task-filters/models/filter-cloud.model';
-import { takeUntil } from 'rxjs/operators';
+import { debounceTime, takeUntil, tap } from 'rxjs/operators';
+import { ProcessListCloudService } from '../../../process/process-list/services/process-list-cloud.service';
 
 @Component({
     selector: 'adf-cloud-process-filters',
@@ -58,19 +59,32 @@ export class ProcessFiltersCloudComponent implements OnInit, OnChanges, OnDestro
     @Output()
     error = new EventEmitter<any>();
 
+    /** Emitted when filter is updated. */
+    @Output()
+    updatedFilter: EventEmitter<string> = new EventEmitter<string>();
+
     filters$: Observable<ProcessFilterCloudModel[]>;
     currentFilter?: ProcessFilterCloudModel;
     filters: ProcessFilterCloudModel[] = [];
+    counters: { [key: string]: number } = {};
+    enableNotifications: boolean;
+    currentFiltersValues: { [key: string]: number } = {};
+    updatedFiltersSet = new Set<string>();
 
     private onDestroy$ = new Subject<boolean>();
 
     private readonly processFilterCloudService = inject(ProcessFilterCloudService);
     private readonly translationService = inject(TranslationService);
+    private readonly appConfigService = inject(AppConfigService);
+    private readonly processListCloudService = inject(ProcessListCloudService);
 
     ngOnInit() {
+        this.enableNotifications = this.appConfigService.get('notifications', true);
         if (this.appName === '') {
             this.getFilters(this.appName);
         }
+        this.initProcessNotification();
+        this.getFilterKeysAfterExternalRefreshing();
     }
 
     ngOnChanges(changes: SimpleChanges) {
@@ -95,13 +109,22 @@ export class ProcessFiltersCloudComponent implements OnInit, OnChanges, OnDestro
             next: (res) => {
                 this.resetFilter();
                 this.filters = res || [];
+                this.initFilterCounters();
                 this.selectFilterAndEmit(this.filterParam);
                 this.success.emit(res);
+                this.updateFilterCounters();
             },
             error: (err: any) => {
                 this.error.emit(err);
             }
         });
+    }
+
+    /**
+     * Initialize counter collection for filters
+     */
+    initFilterCounters() {
+        this.filters.forEach((filter) => (this.counters[filter.key] = 0));
     }
 
     /**
@@ -172,6 +195,8 @@ export class ProcessFiltersCloudComponent implements OnInit, OnChanges, OnDestro
         if (filter) {
             this.selectFilter(filter);
             this.filterClicked.emit(this.currentFilter);
+            this.updateFilterCounter(this.currentFilter);
+            this.updatedFiltersSet.delete(filter.key);
         } else {
             this.currentFilter = undefined;
         }
@@ -219,5 +244,71 @@ export class ProcessFiltersCloudComponent implements OnInit, OnChanges, OnDestro
 
     isActiveFilter(filter: ProcessFilterCloudModel): boolean {
         return this.currentFilter.name === filter.name;
+    }
+
+    initProcessNotification(): void {
+        if (this.appName && this.enableNotifications) {
+            this.processFilterCloudService
+                .getProcessNotificationSubscription(this.appName)
+                .pipe(debounceTime(1000), takeUntil(this.onDestroy$))
+                .subscribe(() => {
+                    this.updateFilterCounters();
+                });
+        }
+    }
+
+    /**
+     * Iterate over filters and update counters
+     */
+    updateFilterCounters(): void {
+        this.filters.forEach((filter: ProcessFilterCloudModel) => {
+            this.updateFilterCounter(filter);
+        });
+    }
+
+    /**
+     *  Get current value for filter and check if value has changed
+     * @param filter filter
+     */
+    updateFilterCounter(filter: ProcessFilterCloudModel): void {
+        this.processListCloudService
+            .getProcessCounter(filter.appName, filter.status)
+            .pipe(
+                tap((filterCounter) => {
+                    this.checkIfFilterValuesHasBeenUpdated(filter.key, filterCounter);
+                })
+            )
+            .subscribe((data) => {
+                this.counters = {
+                    ...this.counters,
+                    [filter.key]: data
+                };
+            });
+    }
+
+    checkIfFilterValuesHasBeenUpdated(filterKey: string, filterValue: number): void {
+        if (!this.currentFiltersValues[filterKey]) {
+            this.currentFiltersValues[filterKey] = filterValue;
+            return;
+        }
+        if (this.currentFiltersValues[filterKey] !== filterValue) {
+            this.currentFiltersValues[filterKey] = filterValue;
+            this.updatedFilter.emit(filterKey);
+            this.updatedFiltersSet.add(filterKey);
+        }
+    }
+
+    isFilterUpdated(filterName: string): boolean {
+        return this.updatedFiltersSet.has(filterName);
+    }
+
+    /**
+     * Get filer key when filter was refreshed by external action
+     *
+     */
+    getFilterKeysAfterExternalRefreshing(): void {
+        this.processFilterCloudService.filterKeyToBeRefreshed$.pipe(takeUntil(this.onDestroy$)).subscribe((filterKey: string) => {
+            this.updatedFiltersSet.delete(filterKey);
+        });
     }
 }

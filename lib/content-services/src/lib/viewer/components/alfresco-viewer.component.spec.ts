@@ -21,29 +21,40 @@ import { ComponentFixture, fakeAsync, TestBed, tick } from '@angular/core/testin
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { AppExtensionService, ViewerExtensionRef } from '@alfresco/adf-extensions';
 import { ContentInfo, Node, NodeEntry, VersionEntry } from '@alfresco/js-api';
-import { AlfrescoViewerComponent, ContentService, NodeActionsService, RenditionService } from '@alfresco/adf-content-services';
 import {
-    AlfrescoApiService,
-    AlfrescoApiServiceMock,
-    AuthModule,
     CloseButtonPosition,
     EventMock,
     ViewUtilService,
     ViewerComponent,
     VIEWER_DIRECTIVES,
     ViewerSidebarComponent,
-    NoopTranslateModule
+    NoopTranslateModule,
+    ViewerToolbarComponent,
+    ViewerOpenWithComponent,
+    ViewerMoreActionsComponent,
+    ViewerToolbarActionsComponent,
+    NoopAuthModule
 } from '@alfresco/adf-core';
 import { NodesApiService } from '../../common/services/nodes-api.service';
 import { UploadService } from '../../common/services/upload.service';
 import { FileModel } from '../../common/models/file.model';
 import { throwError } from 'rxjs';
-import { Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { Component, SimpleChange, SimpleChanges } from '@angular/core';
 import { ESCAPE } from '@angular/cdk/keycodes';
 import { By } from '@angular/platform-browser';
+import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatButtonModule } from '@angular/material/button';
+import { AlfrescoViewerComponent } from './alfresco-viewer.component';
+import { RenditionService } from '../../common/services/rendition.service';
+import { NodeActionsService } from '../../document-list/services/node-actions.service';
+import { ContentTestingModule } from '../../testing/content.testing.module';
+import { ContentService } from '../../common/services/content.service';
 
 @Component({
     selector: 'adf-viewer-container-toolbar',
+    standalone: true,
+    imports: [ViewerToolbarComponent, AlfrescoViewerComponent],
     template: `
         <adf-alfresco-viewer>
             <adf-viewer-toolbar>
@@ -56,22 +67,24 @@ class ViewerWithCustomToolbarComponent {}
 
 @Component({
     selector: 'adf-viewer-container-toolbar-actions',
-    template: `
-        <adf-alfresco-viewer>
-            <adf-viewer-toolbar-actions>
-                <button mat-icon-button id="custom-button">
-                    <mat-icon>alarm</mat-icon>
-                </button>
-            </adf-viewer-toolbar-actions>
-        </adf-alfresco-viewer>
-    `
+    standalone: true,
+    imports: [MatIconModule, MatButtonModule, ViewerToolbarActionsComponent, AlfrescoViewerComponent],
+    template: `<adf-alfresco-viewer>
+        <adf-viewer-toolbar-actions>
+            <button mat-icon-button id="custom-button">
+                <mat-icon>alarm</mat-icon>
+            </button>
+        </adf-viewer-toolbar-actions>
+    </adf-alfresco-viewer>`
 })
 class ViewerWithCustomToolbarActionsComponent {}
 
 @Component({
     selector: 'adf-viewer-container-sidebar',
+    standalone: true,
+    imports: [ViewerSidebarComponent, AlfrescoViewerComponent],
     template: `
-        <adf-alfresco-viewer>
+        <adf-alfresco-viewer [allowRightSidebar]="true" [showRightSidebar]="true" [nodeId]="'1'">
             <adf-viewer-sidebar>
                 <div class="custom-sidebar"></div>
             </adf-viewer-sidebar>
@@ -88,6 +101,8 @@ class DummyDialogComponent {}
 
 @Component({
     selector: 'adf-viewer-container-open-with',
+    standalone: true,
+    imports: [MatIconModule, MatMenuModule, ViewerOpenWithComponent, AlfrescoViewerComponent],
     template: `
         <adf-alfresco-viewer>
             <adf-viewer-open-with>
@@ -111,26 +126,41 @@ class ViewerWithCustomOpenWithComponent {}
 
 @Component({
     selector: 'adf-viewer-container-more-actions',
-    template: `
-        <adf-alfresco-viewer>
-            <adf-viewer-more-actions>
-                <button mat-menu-item>
-                    <mat-icon>dialpad</mat-icon>
-                    <span>Action One</span>
-                </button>
-                <button mat-menu-item [disabled]="true">
-                    <mat-icon>voicemail</mat-icon>
-                    <span>Action Two</span>
-                </button>
-                <button mat-menu-item>
-                    <mat-icon>notifications_off</mat-icon>
-                    <span>Action Three</span>
-                </button>
-            </adf-viewer-more-actions>
-        </adf-alfresco-viewer>
-    `
+    standalone: true,
+    imports: [MatIconModule, MatMenuModule, ViewerMoreActionsComponent, AlfrescoViewerComponent],
+    template: ` <adf-alfresco-viewer>
+        <adf-viewer-more-actions>
+            <button mat-menu-item>
+                <mat-icon>dialpad</mat-icon>
+                <span>Action One</span>
+            </button>
+            <button mat-menu-item [disabled]="true">
+                <mat-icon>voicemail</mat-icon>
+                <span>Action Two</span>
+            </button>
+            <button mat-menu-item>
+                <mat-icon>notifications_off</mat-icon>
+                <span>Action Three</span>
+            </button>
+        </adf-viewer-more-actions>
+    </adf-alfresco-viewer>`
 })
 class ViewerWithCustomMoreActionsComponent {}
+
+const getSimpleChanges = (currentValue: string, previousValue?: string): SimpleChanges => ({
+    nodeId: new SimpleChange(previousValue || null, currentValue, false)
+});
+
+const verifyCustomElement = (component: any, selector: string, done: DoneFn) => {
+    const customFixture = TestBed.createComponent(component);
+    const customElement: HTMLElement = customFixture.nativeElement;
+
+    customFixture.detectChanges();
+    customFixture.whenStable().then(() => {
+        expect(customElement.querySelector(selector)).toBeDefined();
+        done();
+    });
+};
 
 describe('AlfrescoViewerComponent', () => {
     let component: AlfrescoViewerComponent;
@@ -147,8 +177,12 @@ describe('AlfrescoViewerComponent', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [AuthModule.forRoot({ useHash: true }), MatDialogModule, NoopTranslateModule, ...VIEWER_DIRECTIVES],
-            declarations: [
+            imports: [
+                ContentTestingModule,
+                NoopAuthModule,
+                MatDialogModule,
+                NoopTranslateModule,
+                ...VIEWER_DIRECTIVES,
                 ViewerWithCustomToolbarComponent,
                 ViewerWithCustomSidebarComponent,
                 ViewerWithCustomOpenWithComponent,
@@ -157,19 +191,16 @@ describe('AlfrescoViewerComponent', () => {
             ],
             providers: [
                 ContentService,
-                { provide: AlfrescoApiService, useClass: AlfrescoApiServiceMock },
                 {
                     provide: RenditionService,
                     useValue: {
-                        getNodeRendition: () => throwError('thrown'),
+                        getNodeRendition: () => throwError(() => new Error('thrown')),
                         generateMediaTracksRendition: () => {}
                     }
                 },
                 { provide: Location, useClass: SpyLocation },
-                MatDialog,
-                ViewerSidebarComponent
-            ],
-            schemas: [CUSTOM_ELEMENTS_SCHEMA]
+                MatDialog
+            ]
         });
         fixture = TestBed.createComponent(AlfrescoViewerComponent);
         element = fixture.nativeElement;
@@ -209,7 +240,7 @@ describe('AlfrescoViewerComponent', () => {
             spyOn(component.nodesApi, 'getNode').and.callFake(() => Promise.resolve(new NodeEntry({ entry: new Node() })));
 
             component.nodeId = '37f7f34d-4e64-4db6-bb3f-5c89f7844251';
-            component.ngOnChanges();
+            component.ngOnChanges(getSimpleChanges('new-node-id'));
 
             fixture.detectChanges();
             tick(100);
@@ -233,7 +264,7 @@ describe('AlfrescoViewerComponent', () => {
 
             spyOn(component['contentApi'], 'getContentUrl').and.returnValue(contentUrl);
 
-            component.ngOnChanges();
+            component.ngOnChanges({});
             fixture.whenStable().then(() => {
                 fixture.detectChanges();
                 expect(element.querySelector('adf-viewer-unknown-format')).toBeDefined();
@@ -251,16 +282,28 @@ describe('AlfrescoViewerComponent', () => {
         component.showViewer = true;
 
         component.nodeId = 'id1';
-        component.ngOnChanges();
+        component.ngOnChanges(getSimpleChanges('id1'));
         tick();
 
         expect(component.fileName).toBe('file1');
 
         component.nodeId = 'id2';
-        component.ngOnChanges();
+        component.ngOnChanges(getSimpleChanges('id2'));
         tick();
 
         expect(component.fileName).toBe('file2');
+        expect(component['nodesApi'].getNode).toHaveBeenCalledTimes(2);
+    }));
+
+    it('should not setup the node twice if the node id is not changed', fakeAsync(() => {
+        spyOn(component['nodesApi'], 'getNode').and.stub();
+        component.showViewer = true;
+        component.nodeId = 'id1';
+        component.ngOnChanges(getSimpleChanges('id0', 'id1'));
+        tick();
+        component.ngOnChanges(getSimpleChanges('id1', 'id1'));
+        tick();
+        expect(component['nodesApi'].getNode).toHaveBeenCalledTimes(1);
     }));
 
     it('should append version of the file to the file content URL', fakeAsync(() => {
@@ -280,7 +323,7 @@ describe('AlfrescoViewerComponent', () => {
         component.nodeId = 'id1';
         component.showViewer = true;
         component.versionId = null;
-        component.ngOnChanges();
+        component.ngOnChanges(getSimpleChanges('id1'));
         tick();
 
         expect(component.fileName).toBe('file1.pdf');
@@ -300,13 +343,13 @@ describe('AlfrescoViewerComponent', () => {
         component.nodeId = 'id1';
         component.showViewer = true;
         component.versionId = '1.0';
-        component.ngOnChanges();
+        component.ngOnChanges(getSimpleChanges('id1'));
         tick();
 
         expect(component.fileName).toBe('file1');
 
         component.versionId = '1.1';
-        component.ngOnChanges();
+        component.ngOnChanges(getSimpleChanges('id1'));
         tick();
 
         expect(component.fileName).toBe('file2');
@@ -323,90 +366,58 @@ describe('AlfrescoViewerComponent', () => {
 
     describe('Viewer Example Component Rendering', () => {
         it('should use custom toolbar', (done) => {
-            const customFixture = TestBed.createComponent(ViewerWithCustomToolbarComponent);
-            const customElement: HTMLElement = customFixture.nativeElement;
-
-            customFixture.detectChanges();
-            fixture.whenStable().then(() => {
-                expect(customElement.querySelector('.custom-toolbar-element')).toBeDefined();
-                done();
-            });
+            verifyCustomElement(ViewerWithCustomToolbarComponent, '.custom-toolbar-element', done);
         });
 
         it('should use custom toolbar actions', (done) => {
-            const customFixture = TestBed.createComponent(ViewerWithCustomToolbarActionsComponent);
-            const customElement: HTMLElement = customFixture.nativeElement;
-
-            customFixture.detectChanges();
-            fixture.whenStable().then(() => {
-                expect(customElement.querySelector('#custom-button')).toBeDefined();
-                done();
-            });
+            verifyCustomElement(ViewerWithCustomToolbarActionsComponent, '#custom-button', done);
         });
 
         it('should use custom info drawer', (done) => {
-            const customFixture = TestBed.createComponent(ViewerWithCustomSidebarComponent);
-            const customElement: HTMLElement = customFixture.nativeElement;
-
-            customFixture.detectChanges();
-
-            fixture.whenStable().then(() => {
-                expect(customElement.querySelector('.custom-info-drawer-element')).toBeDefined();
-                done();
-            });
+            verifyCustomElement(ViewerWithCustomSidebarComponent, '.custom-info-drawer-element', done);
         });
 
         it('should use custom open with menu', (done) => {
-            const customFixture = TestBed.createComponent(ViewerWithCustomOpenWithComponent);
-            const customElement: HTMLElement = customFixture.nativeElement;
-
-            customFixture.detectChanges();
-
-            fixture.whenStable().then(() => {
-                expect(customElement.querySelector('.adf-viewer-container-open-with')).toBeDefined();
-                done();
-            });
+            verifyCustomElement(ViewerWithCustomOpenWithComponent, '.adf-viewer-container-open-with', done);
         });
 
         it('should use custom more actions menu', (done) => {
-            const customFixture = TestBed.createComponent(ViewerWithCustomMoreActionsComponent);
-            const customElement: HTMLElement = customFixture.nativeElement;
-
-            customFixture.detectChanges();
-
-            fixture.whenStable().then(() => {
-                expect(customElement.querySelector('.adf-viewer-container-more-actions')).toBeDefined();
-                done();
-            });
+            verifyCustomElement(ViewerWithCustomMoreActionsComponent, '.adf-viewer-container-more-actions', done);
         });
 
-        it('should stop propagation on sidebar keydown event [keydown]', fakeAsync(() => {
+        it('should stop propagation on sidebar keydown event [keydown]', async () => {
             const customFixture = TestBed.createComponent(ViewerWithCustomSidebarComponent);
             const customElement: HTMLElement = customFixture.nativeElement;
             const escapeKeyboardEvent = new KeyboardEvent('keydown', { key: ESCAPE.toString() });
             const stopPropagationSpy = spyOn(escapeKeyboardEvent, 'stopPropagation');
 
             customFixture.detectChanges();
-            const viewerSidebarElement = customElement.querySelector('adf-viewer-sidebar');
+            await customFixture.whenStable();
+
+            const viewerSidebarElement = customElement.querySelector('.adf-viewer-sidebar');
 
             viewerSidebarElement.dispatchEvent(escapeKeyboardEvent);
+            customFixture.detectChanges();
 
             expect(stopPropagationSpy).toHaveBeenCalled();
-        }));
+        });
 
-        it('should stop propagation on sidebar keyup event [keyup]', fakeAsync(() => {
+        it('should stop propagation on sidebar keyup event [keyup]', async () => {
             const customFixture = TestBed.createComponent(ViewerWithCustomSidebarComponent);
             const customElement: HTMLElement = customFixture.nativeElement;
             const escapeKeyboardEvent = new KeyboardEvent('keyup', { key: ESCAPE.toString() });
             const stopPropagationSpy = spyOn(escapeKeyboardEvent, 'stopPropagation');
 
             customFixture.detectChanges();
-            const viewerSidebarElement = customElement.querySelector('adf-viewer-sidebar');
+            await customFixture.whenStable();
+
+            const viewerSidebarElement = customElement.querySelector('.adf-viewer-sidebar');
 
             viewerSidebarElement.dispatchEvent(escapeKeyboardEvent);
+            await customFixture.whenStable();
 
             expect(stopPropagationSpy).toHaveBeenCalled();
-        }));
+        });
     });
 
     describe('error handling', () => {
@@ -416,7 +427,7 @@ describe('AlfrescoViewerComponent', () => {
             component.nodeId = 'the-node-id-of-the-file-to-preview';
             component.mimeType = null;
 
-            component.ngOnChanges();
+            component.ngOnChanges(getSimpleChanges('id1'));
             fixture.whenStable().then(() => {
                 fixture.detectChanges();
                 expect(element.querySelector('adf-viewer-unknown-format')).not.toBeNull();
@@ -431,7 +442,7 @@ describe('AlfrescoViewerComponent', () => {
             component.mimeType = null;
             component.nodeId = null;
 
-            component.ngOnChanges();
+            component.ngOnChanges({});
             fixture.whenStable().then(() => {
                 fixture.detectChanges();
                 expect(element.querySelector('adf-viewer-unknown-format')).not.toBeNull();
@@ -450,13 +461,12 @@ describe('AlfrescoViewerComponent', () => {
                 expect(emittedValue).toBeUndefined();
             });
 
-            component.ngOnChanges();
+            component.ngOnChanges({});
         }));
-        //
     });
 
-    describe('originalMimeType', () => {
-        it('should set originalMimeType based on nodeData content', async () => {
+    describe('mimeType', () => {
+        it('should set mime type based on renditionMimeType rather then nodeData', async () => {
             const defaultNode: Node = {
                 id: 'mock-id',
                 name: 'Mock Node',
@@ -474,7 +484,7 @@ describe('AlfrescoViewerComponent', () => {
             spyOn(renditionService, 'getNodeRendition').and.returnValue(
                 Promise.resolve({
                     url: '',
-                    mimeType: ''
+                    mimeType: 'application/pdf'
                 })
             );
 
@@ -488,7 +498,7 @@ describe('AlfrescoViewerComponent', () => {
             } as Node);
 
             await fixture.whenStable();
-            expect(component.originalMimeType).toEqual('application/msWord');
+            expect(component.mimeType).toEqual('application/pdf');
         });
     });
 
@@ -662,7 +672,7 @@ describe('AlfrescoViewerComponent', () => {
             spyOn(component['nodesApi'], 'getNode').and.returnValue(Promise.resolve(node));
             spyOn(component['contentApi'], 'getContentUrl').and.returnValue(contentUrl);
 
-            component.ngOnChanges();
+            component.ngOnChanges(getSimpleChanges('id1'));
             fixture.whenStable().then(() => {
                 fixture.detectChanges();
                 expect(component.nodeEntry).toBe(node);
@@ -686,7 +696,7 @@ describe('AlfrescoViewerComponent', () => {
             component.sharedLinkId = 'the-Shared-Link-id';
             component.mimeType = null;
 
-            component.ngOnChanges();
+            component.ngOnChanges({});
             fixture.whenStable().then(() => {
                 fixture.detectChanges();
                 expect(element.querySelector('[data-automation-id="adf-toolbar-left-back"]')).toBeNull();
@@ -704,52 +714,47 @@ describe('AlfrescoViewerComponent', () => {
         });
 
         describe('SideBar Test', () => {
-            it('should NOT display sidebar if is not allowed', (done) => {
-                component.showRightSidebar = true;
-                component.allowRightSidebar = false;
+            const verifySidebarDisplay = (
+                sidebarId: string,
+                showSidebar: boolean,
+                allowSidebar: boolean,
+                expectedOrder: string | null,
+                done: DoneFn
+            ) => {
+                if (sidebarId === '#adf-right-sidebar') {
+                    component.showRightSidebar = showSidebar;
+                    component.allowRightSidebar = allowSidebar;
+                } else if (sidebarId === '#adf-left-sidebar') {
+                    component.showLeftSidebar = showSidebar;
+                    component.allowLeftSidebar = allowSidebar;
+                }
                 fixture.detectChanges();
 
                 fixture.whenStable().then(() => {
-                    const sidebar = element.querySelector('#adf-right-sidebar');
-                    expect(sidebar).toBeNull();
+                    const sidebar = element.querySelector(sidebarId);
+                    if (expectedOrder === null) {
+                        expect(sidebar).toBeNull();
+                    } else {
+                        expect(getComputedStyle(sidebar).order).toEqual(expectedOrder);
+                    }
                     done();
                 });
+            };
+
+            it('should NOT display sidebar if is not allowed', (done) => {
+                verifySidebarDisplay('#adf-right-sidebar', true, false, null, done);
             });
 
             it('should display sidebar on the right side', (done) => {
-                component.allowRightSidebar = true;
-                component.showRightSidebar = true;
-                fixture.detectChanges();
-
-                fixture.whenStable().then(() => {
-                    const sidebar = element.querySelector('#adf-right-sidebar');
-                    expect(getComputedStyle(sidebar).order).toEqual('4');
-                    done();
-                });
+                verifySidebarDisplay('#adf-right-sidebar', true, true, '4', done);
             });
 
             it('should NOT display left sidebar if is not allowed', (done) => {
-                component.showLeftSidebar = true;
-                component.allowLeftSidebar = false;
-                fixture.detectChanges();
-
-                fixture.whenStable().then(() => {
-                    const sidebar = element.querySelector('#adf-left-sidebar');
-                    expect(sidebar).toBeNull();
-                    done();
-                });
+                verifySidebarDisplay('#adf-left-sidebar', true, false, null, done);
             });
 
             it('should display sidebar on the left side', (done) => {
-                component.allowLeftSidebar = true;
-                component.showLeftSidebar = true;
-                fixture.detectChanges();
-
-                fixture.whenStable().then(() => {
-                    const sidebar = element.querySelector('#adf-left-sidebar');
-                    expect(getComputedStyle(sidebar).order).toEqual('1');
-                    done();
-                });
+                verifySidebarDisplay('#adf-left-sidebar', true, true, '1', done);
             });
         });
 
@@ -769,7 +774,7 @@ describe('AlfrescoViewerComponent', () => {
                 });
 
                 it('should Name File be present if is overlay mode ', async () => {
-                    component.ngOnChanges();
+                    component.ngOnChanges({});
                     fixture.detectChanges();
                     await fixture.whenStable();
                     fixture.detectChanges();
@@ -848,7 +853,7 @@ describe('AlfrescoViewerComponent', () => {
                 component.nodeId = 'file-node-id';
                 spyOn(component.nodesApi, 'getNode').and.callFake(() => Promise.resolve(new NodeEntry({ entry: new Node() })));
                 expect(() => {
-                    component.ngOnChanges();
+                    component.ngOnChanges({});
                 }).not.toThrow();
             });
 

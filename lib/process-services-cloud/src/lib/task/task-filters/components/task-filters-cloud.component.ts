@@ -20,7 +20,7 @@ import { Observable } from 'rxjs';
 import { TaskFilterCloudService } from '../services/task-filter-cloud.service';
 import { TaskFilterCloudModel, FilterParamsModel } from '../models/filter-cloud.model';
 import { AppConfigService, TranslationService } from '@alfresco/adf-core';
-import { debounceTime, takeUntil } from 'rxjs/operators';
+import { debounceTime, takeUntil, tap } from 'rxjs/operators';
 import { BaseTaskFiltersCloudComponent } from './base-task-filters-cloud.component';
 import { TaskDetailsCloudModel } from '../../start-task/models/task-details-cloud.model';
 import { TaskCloudEngineEvent } from '../../../models/engine-event-cloud.model';
@@ -44,10 +44,15 @@ export class TaskFiltersCloudComponent extends BaseTaskFiltersCloudComponent imp
     @Output()
     filterCounterUpdated: EventEmitter<TaskCloudEngineEvent[]> = new EventEmitter<TaskCloudEngineEvent[]>();
 
+    /** Emitted when filter is updated. */
+    @Output()
+    updatedFilter: EventEmitter<string> = new EventEmitter<string>();
+
     filters$: Observable<TaskFilterCloudModel[]>;
     filters: TaskFilterCloudModel[] = [];
     currentFilter: TaskFilterCloudModel;
     enableNotifications: boolean;
+    currentFiltersValues: { [key: string]: number } = {};
 
     private readonly taskFilterCloudService = inject(TaskFilterCloudService);
     private readonly translationService = inject(TranslationService);
@@ -57,6 +62,7 @@ export class TaskFiltersCloudComponent extends BaseTaskFiltersCloudComponent imp
         this.enableNotifications = this.appConfigService.get('notifications', true);
         this.getFilters(this.appName);
         this.initFilterCounterNotifications();
+        this.getFilterKeysAfterExternalRefreshing();
     }
 
     ngOnChanges(changes: SimpleChanges) {
@@ -81,6 +87,7 @@ export class TaskFiltersCloudComponent extends BaseTaskFiltersCloudComponent imp
             (res) => {
                 this.resetFilter();
                 this.filters = res || [];
+                this.initFilterCounters();
                 this.selectFilterAndEmit(this.filterParam);
                 this.updateFilterCounters();
                 this.success.emit(res);
@@ -91,13 +98,39 @@ export class TaskFiltersCloudComponent extends BaseTaskFiltersCloudComponent imp
         );
     }
 
-    updateFilterCounters() {
+    /**
+     * Initialize counter collection for filters
+     */
+    initFilterCounters(): void {
+        this.filters.forEach((filter) => (this.counters[filter.key] = 0));
+    }
+
+    /**
+     * Iterate over filters and update counters
+     */
+    updateFilterCounters(): void {
         this.filters.forEach((filter: TaskFilterCloudModel) => this.updateFilterCounter(filter));
     }
 
-    updateFilterCounter(filter: TaskFilterCloudModel) {
+    /**
+     *  Get current value for filter and check if value has changed
+     * @param filter filter
+     */
+    updateFilterCounter(filter: TaskFilterCloudModel): void {
         if (filter?.showCounter) {
-            this.counters$[filter.key] = this.taskFilterCloudService.getTaskFilterCounter(filter);
+            this.taskFilterCloudService
+                .getTaskFilterCounter(filter)
+                .pipe(
+                    tap((filterCounter) => {
+                        this.checkIfFilterValuesHasBeenUpdated(filter.key, filterCounter);
+                    })
+                )
+                .subscribe((data) => {
+                    this.counters = {
+                        ...this.counters,
+                        [filter.key]: data
+                    };
+                });
         }
     }
 
@@ -173,6 +206,7 @@ export class TaskFiltersCloudComponent extends BaseTaskFiltersCloudComponent imp
             this.selectFilter(filter);
             this.updateFilterCounter(this.currentFilter);
             this.filterClicked.emit(this.currentFilter);
+            this.updatedCountersSet.delete(filter.key);
         } else {
             this.currentFilter = undefined;
         }
@@ -202,5 +236,27 @@ export class TaskFiltersCloudComponent extends BaseTaskFiltersCloudComponent imp
     private resetFilter() {
         this.filters = [];
         this.currentFilter = undefined;
+    }
+
+    checkIfFilterValuesHasBeenUpdated(filterKey: string, filterValue: number) {
+        if (!this.currentFiltersValues[filterKey]) {
+            this.currentFiltersValues[filterKey] = filterValue;
+            return;
+        }
+        if (this.currentFiltersValues[filterKey] !== filterValue) {
+            this.currentFiltersValues[filterKey] = filterValue;
+            this.updatedFilter.emit(filterKey);
+            this.updatedCountersSet.add(filterKey);
+        }
+    }
+
+    /**
+     * Get filer key when filter was refreshed by external action
+     *
+     */
+    getFilterKeysAfterExternalRefreshing(): void {
+        this.taskFilterCloudService.filterKeyToBeRefreshed$.pipe(takeUntil(this.onDestroy$)).subscribe((filterKey: string) => {
+            this.updatedCountersSet.delete(filterKey);
+        });
     }
 }

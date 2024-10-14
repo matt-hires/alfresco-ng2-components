@@ -17,9 +17,8 @@
 
 /* eslint-disable @typescript-eslint/naming-convention */
 
-import { VersionCompatibilityService } from '@alfresco/adf-content-services';
+import { VersionCompatibilityService, AlfrescoApiService } from '@alfresco/adf-content-services';
 import {
-    AlfrescoApiService,
     ContentLinkModel,
     CoreModule,
     FormFieldModel,
@@ -1320,7 +1319,7 @@ describe('FormCloudComponent', () => {
         });
 
         it('should not set the styles for the card', () => {
-            const fullScreenCard = fixture.debugElement.query(By.css('.adf-cloud-form-content-card'));
+            const fullScreenCard = fixture.debugElement.query(By.css('.adf-cloud-form-content-card-fullscreen'));
             expect(fullScreenCard).toBeNull();
         });
 
@@ -1363,7 +1362,7 @@ describe('FormCloudComponent', () => {
                 await loadForm({ displayMode: FormCloudDisplayMode.fullScreen });
             });
 
-            it('should emit display mode turned on wit the fullScreen configuration', () => {
+            it('should emit display mode turned on with the fullScreen configuration', () => {
                 expect(displayModeOnSpy).toHaveBeenCalledWith(DisplayModeService.IMPLEMENTED_DISPLAY_MODE_CONFIGURATIONS[1]);
             });
 
@@ -1406,7 +1405,7 @@ describe('FormCloudComponent', () => {
             });
 
             it('should set the styles for the card', () => {
-                const fullScreenCard = fixture.debugElement.query(By.css('.adf-cloud-form-content-card'));
+                const fullScreenCard = fixture.debugElement.query(By.css('.adf-cloud-form-content-card-fullscreen'));
                 expect(fullScreenCard).not.toBeNull();
             });
 

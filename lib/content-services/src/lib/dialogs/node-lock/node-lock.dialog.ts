@@ -20,7 +20,6 @@ import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/materia
 import { ReactiveFormsModule, UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { differenceInSeconds } from 'date-fns';
 import { NodeBodyLock, Node, NodeEntry, NodesApi } from '@alfresco/js-api';
-import { AlfrescoApiService } from '@alfresco/adf-core';
 import { CommonModule } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -28,6 +27,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatDatetimepickerModule } from '@mat-datetimepicker/core';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
+import { AlfrescoApiService } from '../../services/alfresco-api.service';
 
 @Component({
     selector: 'adf-node-lock',
@@ -74,7 +74,7 @@ export class NodeLockDialogComponent implements OnInit {
         const time = isTimeLock ? new Date(node.properties['cm:expiryDate']) : new Date();
 
         this.form = this.formBuilder.group({
-            isLocked: node.isLocked || false,
+            isLocked: !!node.properties['cm:lockType'] || node.isLocked,
             allowOwner: node.properties['cm:lockType'] === 'WRITE_LOCK',
             isTimeLock,
             time
@@ -113,6 +113,7 @@ export class NodeLockDialogComponent implements OnInit {
         this.toggleLock()
             .then((node: NodeEntry) => {
                 this.data.node.isLocked = this.form.value.isLocked;
+                this.data.node.properties = node.entry.properties;
                 this.dialog.close(node.entry);
             })
             .catch((error: any) => this.data.onError(error));

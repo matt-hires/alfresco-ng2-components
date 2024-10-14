@@ -20,7 +20,6 @@ import { By } from '@angular/platform-browser';
 import { CardViewTextItemModel } from '../../models/card-view-textitem.model';
 import { CardViewUpdateService } from '../../services/card-view-update.service';
 import { CardViewTextItemComponent } from './card-view-textitem.component';
-import { CoreTestingModule } from '../../../testing/core.testing.module';
 import { CardViewItemFloatValidator } from '../../validators/card-view-item-float.validator';
 import { CardViewItemIntValidator } from '../../validators/card-view-item-int.validator';
 import { CardViewIntItemModel } from '../../models/card-view-intitem.model';
@@ -33,6 +32,8 @@ import { HarnessLoader } from '@angular/cdk/testing';
 import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
 import { MatChipHarness, MatChipGridHarness } from '@angular/material/chips/testing';
 import { MatInputHarness } from '@angular/material/input/testing';
+import { NoopTranslateModule } from '@alfresco/adf-core';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('CardViewTextItemComponent', () => {
     let loader: HarnessLoader;
@@ -111,7 +112,7 @@ describe('CardViewTextItemComponent', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [CoreTestingModule, CardViewTextItemComponent]
+            imports: [NoopTranslateModule, NoopAnimationsModule, CardViewTextItemComponent]
         });
         fixture = TestBed.createComponent(CardViewTextItemComponent);
         component = fixture.componentInstance;
@@ -580,7 +581,7 @@ describe('CardViewTextItemComponent', () => {
             expect(cardViewUpdateService.update).toHaveBeenCalledWith(property, 'updated-value');
         });
 
-        it('should trigger the update event if the editedValue is NOT valid', async () => {
+        it('should NOT trigger the update event if the editedValue is invalid', async () => {
             const cardViewUpdateService = TestBed.inject(CardViewUpdateService);
             spyOn(cardViewUpdateService, 'update');
             component.property.isValid = () => false;
@@ -588,7 +589,7 @@ describe('CardViewTextItemComponent', () => {
             updateTextField(component.property.key, '@invalid-value');
             await fixture.whenStable();
 
-            expect(cardViewUpdateService.update).toHaveBeenCalled();
+            expect(cardViewUpdateService.update).not.toHaveBeenCalled();
         });
 
         it('should trigger the update event if the editedValue is valid', async () => {

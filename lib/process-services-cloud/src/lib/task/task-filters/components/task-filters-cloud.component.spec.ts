@@ -15,18 +15,18 @@
  * limitations under the License.
  */
 
+import { AppConfigService } from '@alfresco/adf-core';
 import { SimpleChange } from '@angular/core';
 import { ComponentFixture, TestBed, fakeAsync } from '@angular/core/testing';
-import { AppConfigService } from '@alfresco/adf-core';
-import { of, throwError } from 'rxjs';
+import { By } from '@angular/platform-browser';
+import { first, of, throwError } from 'rxjs';
 import { TASK_FILTERS_SERVICE_TOKEN } from '../../../services/cloud-token.service';
 import { LocalPreferenceCloudService } from '../../../services/local-preference-cloud.service';
-import { TaskFilterCloudService } from '../services/task-filter-cloud.service';
-import { TaskFiltersCloudComponent } from './task-filters-cloud.component';
-import { By } from '@angular/platform-browser';
 import { ProcessServiceCloudTestingModule } from '../../../testing/process-service-cloud.testing.module';
+import { defaultTaskFiltersMock, fakeGlobalFilter, taskNotifications } from '../mock/task-filters-cloud.mock';
+import { TaskFilterCloudService } from '../services/task-filter-cloud.service';
 import { TaskFiltersCloudModule } from '../task-filters-cloud.module';
-import { fakeGlobalFilter, defaultTaskFiltersMock, taskNotifications } from '../mock/task-filters-cloud.mock';
+import { TaskFiltersCloudComponent } from './task-filters-cloud.component';
 
 describe('TaskFiltersCloudComponent', () => {
     let taskFilterService: TaskFilterCloudService;
@@ -39,13 +39,8 @@ describe('TaskFiltersCloudComponent', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [
-                ProcessServiceCloudTestingModule,
-                TaskFiltersCloudModule
-            ],
-            providers: [
-                { provide: TASK_FILTERS_SERVICE_TOKEN, useClass: LocalPreferenceCloudService }
-            ]
+            imports: [ProcessServiceCloudTestingModule, TaskFiltersCloudModule],
+            providers: [{ provide: TASK_FILTERS_SERVICE_TOKEN, useClass: LocalPreferenceCloudService }]
         });
         taskFilterService = TestBed.inject(TaskFilterCloudService);
         getTaskFilterCounterSpy = spyOn(taskFilterService, 'getTaskFilterCounter').and.returnValue(of(11));
@@ -288,8 +283,8 @@ describe('TaskFiltersCloudComponent', () => {
 
         const updatedFilterCounters = fixture.debugElement.queryAll(By.css('span.adf-active'));
         expect(updatedFilterCounters.length).toBe(1);
-        expect(Object.keys(component.counters$).length).toBe(1);
-        expect(component.counters$['fake-involved-tasks']).toBeDefined();
+        expect(Object.keys(component.counters).length).toBe(3);
+        expect(component.counters['fake-involved-tasks']).toBeDefined();
     });
 
     it('should not update filter counter when notifications are disabled from app.config.json', fakeAsync(() => {
@@ -334,8 +329,100 @@ describe('TaskFiltersCloudComponent', () => {
         expect(getTaskFilterCounterSpy).toHaveBeenCalledWith(fakeGlobalFilter[0]);
     });
 
-    describe('Highlight Selected Filter', () => {
+    it('should not emit filter key when filter counter is set for first time', () => {
+        component.currentFiltersValues = {};
+        const fakeFilterKey = 'testKey';
+        const fakeFilterValue = 10;
+        const updatedFilterSpy = spyOn(component.updatedFilter, 'emit');
+        component.checkIfFilterValuesHasBeenUpdated(fakeFilterKey, fakeFilterValue);
+        fixture.detectChanges();
 
+        expect(component.currentFiltersValues).not.toEqual({});
+        expect(component.currentFiltersValues[fakeFilterKey]).toBe(fakeFilterValue);
+        expect(updatedFilterSpy).not.toHaveBeenCalled();
+    });
+
+    it('should not emit filter key when filter counter has not changd', () => {
+        component.currentFiltersValues = {};
+        const fakeFilterKey = 'testKey';
+        const fakeFilterValue = 10;
+        const updatedFilterSpy = spyOn(component.updatedFilter, 'emit');
+        component.checkIfFilterValuesHasBeenUpdated(fakeFilterKey, fakeFilterValue);
+        fixture.detectChanges();
+
+        expect(component.currentFiltersValues).not.toEqual({});
+        expect(component.currentFiltersValues[fakeFilterKey]).toBe(fakeFilterValue);
+
+        component.checkIfFilterValuesHasBeenUpdated(fakeFilterKey, fakeFilterValue);
+        expect(component.currentFiltersValues[fakeFilterKey]).toBe(fakeFilterValue);
+        expect(updatedFilterSpy).not.toHaveBeenCalled();
+    });
+
+    it('should emit filter key when filter counter is increased', (done) => {
+        component.currentFiltersValues = {};
+        const fakeFilterKey = 'testKey';
+        component.checkIfFilterValuesHasBeenUpdated(fakeFilterKey, 10);
+
+        component.updatedFilter.pipe(first()).subscribe((updatedFilter: string) => {
+            expect(updatedFilter).toBe(fakeFilterKey);
+            expect(component.currentFiltersValues[fakeFilterKey]).toBe(20);
+            done();
+        });
+        component.checkIfFilterValuesHasBeenUpdated(fakeFilterKey, 20);
+        fixture.detectChanges();
+    });
+
+    it('should emit filter key when filter counter is decreased', (done) => {
+        component.currentFiltersValues = {};
+        const fakeFilterKey = 'testKey';
+        component.checkIfFilterValuesHasBeenUpdated(fakeFilterKey, 10);
+
+        component.updatedFilter.pipe(first()).subscribe((updatedFilter: string) => {
+            expect(updatedFilter).toBe(fakeFilterKey);
+            done();
+        });
+
+        component.checkIfFilterValuesHasBeenUpdated(fakeFilterKey, 5);
+        fixture.detectChanges();
+    });
+
+    it('should remove key from set of updated filters when received refreshed filter key', async () => {
+        const filterKeyTest = 'filter-key-test';
+        component.updatedCountersSet.add(filterKeyTest);
+
+        expect(component.updatedCountersSet.size).toBe(1);
+
+        taskFilterService.filterKeyToBeRefreshed$ = of(filterKeyTest);
+        fixture.detectChanges();
+
+        expect(component.updatedCountersSet.size).toBe(0);
+    });
+
+    it('should remove key from set of updated filters when clicked on filter', async () => {
+        const filter = defaultTaskFiltersMock[1];
+        component.updatedCountersSet.add(filter.key);
+        fixture.detectChanges();
+
+        expect(component.updatedCountersSet.size).toBe(1);
+
+        component.onFilterClick(filter);
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        expect(component.updatedCountersSet.size).toBe(0);
+    });
+
+    it('should add key to set of updated filters when value has changed', () => {
+        component.updatedCountersSet = new Set();
+        const fakeFilterKey = 'testKey';
+        component.checkIfFilterValuesHasBeenUpdated(fakeFilterKey, 10);
+        component.checkIfFilterValuesHasBeenUpdated(fakeFilterKey, 20);
+
+        expect(component.updatedCountersSet.size).toBe(1);
+        expect(component.updatedCountersSet.has(fakeFilterKey)).toBe(true);
+    });
+
+    describe('Highlight Selected Filter', () => {
         const assignedTasksFilterKey = defaultTaskFiltersMock[1].key;
         const queuedTasksFilterKey = defaultTaskFiltersMock[0].key;
         const completedTasksFilterKey = defaultTaskFiltersMock[2].key;

@@ -30,18 +30,19 @@ import {
     ViewEncapsulation
 } from '@angular/core';
 
-import { ContentLinkModel, FORM_FIELD_VALIDATORS, FormFieldValidator, FormModel } from '@alfresco/adf-core';
+import { ContentLinkModel, FORM_FIELD_VALIDATORS, FormFieldValidator, FormModel, TranslationService } from '@alfresco/adf-core';
 import { AbstractControl, FormControl, FormGroup, ValidatorFn, Validators } from '@angular/forms';
 import { MatAutocompleteTrigger } from '@angular/material/autocomplete';
-import { Subject } from 'rxjs';
-import { debounceTime, takeUntil } from 'rxjs/operators';
-import { TaskVariableCloud } from '../../../form/models/task-variable-cloud.model';
-import { ProcessDefinitionCloud } from '../../../models/process-definition-cloud.model';
-import { ProcessNameCloudPipe } from '../../../pipes/process-name-cloud.pipe';
+import { catchError, debounceTime, takeUntil } from 'rxjs/operators';
 import { ProcessInstanceCloud } from '../models/process-instance-cloud.model';
 import { ProcessPayloadCloud } from '../models/process-payload-cloud.model';
 import { ProcessWithFormPayloadCloud } from '../models/process-with-form-payload-cloud.model';
 import { StartProcessCloudService } from '../services/start-process-cloud.service';
+import { forkJoin, of, Subject } from 'rxjs';
+import { ProcessDefinitionCloud } from '../../../models/process-definition-cloud.model';
+import { TaskVariableCloud } from '../../../form/models/task-variable-cloud.model';
+import { ProcessNameCloudPipe } from '../../../pipes/process-name-cloud.pipe';
+import { FormCloudDisplayModeConfiguration } from '../../../services/form-fields.interfaces';
 
 const MAX_NAME_LENGTH: number = 255;
 const PROCESS_DEFINITION_DEBOUNCE: number = 300;
@@ -96,6 +97,13 @@ export class StartProcessCloudComponent implements OnChanges, OnInit, OnDestroy 
     @Input()
     showCancelButton: boolean = true;
 
+    /**
+     * The available display configurations for the form.
+     * (start process event can have assigned form)
+     */
+    @Input()
+    displayModeConfigurations: FormCloudDisplayModeConfiguration[];
+
     /** Emitted when the process is successfully started. */
     @Output()
     success = new EventEmitter<ProcessInstanceCloud>();
@@ -123,6 +131,7 @@ export class StartProcessCloudComponent implements OnChanges, OnInit, OnDestroy 
     filteredProcesses: ProcessDefinitionCloud[] = [];
     staticMappings: TaskVariableCloud[] = [];
     resolvedValues?: TaskVariableCloud[];
+    customOutcome: string;
 
     protected onDestroy$ = new Subject<boolean>();
 
@@ -130,6 +139,10 @@ export class StartProcessCloudComponent implements OnChanges, OnInit, OnDestroy 
     isFormCloudLoaded = false;
     isFormCloudLoading = false;
     processDefinitionLoaded = false;
+
+    showStartProcessButton = true;
+    startProcessButtonLabel: string;
+    cancelButtonLabel: string;
 
     formCloud?: FormModel;
     processForm = new FormGroup({
@@ -170,6 +183,19 @@ export class StartProcessCloudComponent implements OnChanges, OnInit, OnDestroy 
 
     get hasForm(): boolean {
         return !!this.processDefinitionCurrent?.formKey;
+    }
+
+    get defaultStartProcessButtonLabel(): string {
+        return this.translateService.instant('ADF_CLOUD_PROCESS_LIST.ADF_CLOUD_START_PROCESS.FORM.ACTION.START').toUpperCase();
+    }
+
+    get defaultCancelProcessButtonLabel(): string {
+        return this.translateService.instant('ADF_CLOUD_PROCESS_LIST.ADF_CLOUD_START_PROCESS.FORM.ACTION.CANCEL').toUpperCase();
+    }
+
+    constructor(private translateService: TranslationService) {
+        this.startProcessButtonLabel = this.defaultStartProcessButtonLabel;
+        this.cancelButtonLabel = this.defaultCancelProcessButtonLabel;
     }
 
     ngOnInit() {
@@ -230,19 +256,39 @@ export class StartProcessCloudComponent implements OnChanges, OnInit, OnDestroy 
             (process: ProcessDefinitionCloud) => process.name === selectedProcessDefinitionName || process.key === selectedProcessDefinitionName
         );
 
-        this.startProcessCloudService.getStartEventFormStaticValuesMapping(this.appName, processDefinitionCurrent.id).subscribe(
-            (staticMappings) => {
-                this.staticMappings = staticMappings;
-                this.resolvedValues = this.staticMappings.concat(this.values || []);
-                this.processDefinitionCurrent = processDefinitionCurrent;
-                this.isFormCloudLoading = false;
-            },
-            () => {
-                this.resolvedValues = this.values;
-                this.processDefinitionCurrent = processDefinitionCurrent;
-                this.isFormCloudLoading = false;
+        forkJoin([
+            this.startProcessCloudService
+                .getStartEventFormStaticValuesMapping(this.appName, processDefinitionCurrent.id)
+                .pipe(catchError(() => of([] as TaskVariableCloud[]))),
+            this.startProcessCloudService
+                .getStartEventConstants(this.appName, processDefinitionCurrent.id)
+                .pipe(catchError(() => of([] as TaskVariableCloud[])))
+        ]).subscribe(([staticMappings, constants]) => {
+            this.staticMappings = staticMappings;
+            this.resolvedValues = this.staticMappings.concat(this.values || []);
+            this.processDefinitionCurrent = processDefinitionCurrent;
+            this.isFormCloudLoading = false;
+
+            const displayStart = constants?.find((constant) => constant.name === 'startEnabled');
+            const startLabel = constants?.find((constant) => constant.name === 'startLabel');
+
+            const displayCancel = constants?.find((constant) => constant.name === 'cancelEnabled');
+            const cancelLabel = constants?.find((constant) => constant.name === 'cancelLabel');
+
+            if (displayStart) {
+                this.showStartProcessButton = displayStart?.value === 'true';
             }
-        );
+            if (startLabel) {
+                this.startProcessButtonLabel = startLabel?.value?.trim()?.length > 0 ? startLabel.value.trim() : this.defaultStartProcessButtonLabel;
+            }
+
+            if (displayCancel) {
+                this.showCancelButton = displayCancel?.value === 'true' && this.showCancelButton;
+            }
+            if (cancelLabel) {
+                this.cancelButtonLabel = cancelLabel?.value?.trim()?.length > 0 ? cancelLabel.value.trim() : this.defaultCancelProcessButtonLabel;
+            }
+        });
 
         this.isFormCloudLoaded = false;
         this.processPayloadCloud.processDefinitionKey = processDefinitionCurrent.key;
@@ -329,6 +375,11 @@ export class StartProcessCloudComponent implements OnChanges, OnInit, OnDestroy 
         }
     }
 
+    onCustomOutcomeClicked(outcome: string) {
+        this.customOutcome = outcome;
+        this.startProcess();
+    }
+
     startProcess() {
         this.isProcessStarting = true;
 
@@ -341,7 +392,8 @@ export class StartProcessCloudComponent implements OnChanges, OnInit, OnDestroy 
                       processName: this.processInstanceName.value,
                       processDefinitionKey: this.processPayloadCloud.processDefinitionKey,
                       variables: this.variables ?? {},
-                      values: this.formCloud.values
+                      values: this.formCloud.values,
+                      outcome: this.customOutcome
                   })
               )
             : this.startProcessCloudService.startProcess(

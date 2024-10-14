@@ -70,6 +70,43 @@
     },
     "FORM_RENDERER": {
       "NAMELESS_TASK": "Nameless task"
+    },
+    "FIELD_STYLE": {
+      "FONT_SIZE": "Font size",
+      "FONT_WEIGHT": "Font weight",
+      "FONT_COLOR": "Font color",
+      "FONT_WEIGHTS": {
+        "REGULAR": "regular",
+        "BOLD": "bold"
+      },
+      "COLORS": {
+        "SYSTEM_COLOR": "system color",
+        "BLACK": "black",
+        "GREY": "grey",
+        "RED": "red",
+        "GREEN": "green",
+        "BLUE": "blue",
+        "YELLOW": "yellow"
+      },
+      "PREDEFINED": {
+          "HEADER": {
+            "NORMAL": "normal",
+            "HEADING": "heading",
+            "TITLE": "title"
+          },
+          "RADIO_BUTTONS": {
+            "NORMAL": "normal",
+            "STRONG": "strong",
+            "HEADING": "heading"
+          },
+          "READONLY_TEXT": {
+            "NORMAL": "normal",
+            "STRONG": "strong",
+            "HEADING": "heading",
+            "TITLE": "title",
+            "ANNOTATION": "annotation"
+          }
+      }
     }
   },
   "CORE": {
@@ -399,6 +436,7 @@
       "WAIT": "Wait"
     },
     "ARIA": {
+      "MIME_TYPE_ICON": "File type icon",
       "PREVIOUS_PAGE": "Previous page",
       "NEXT_PAGE": "Next page",
       "ZOOM_IN": "Zoom in",

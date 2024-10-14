@@ -23,6 +23,16 @@
       },
       "defaultConfiguration": "production"
     },
+    "build-schematics": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          {
+            "command": "npx tsc -p lib/core/tsconfig.schematics.json && cp lib/core/schematics/migrations/collection.json dist/libs/core/schematics/migrations/collection.json"
+          }
+        ]
+      }
+    },
     "test": {
       "executor": "@angular-devkit/build-angular:karma",
       "options": {
@@ -33,8 +43,7 @@
         "codeCoverage": true,
         "stylePreprocessorOptions": {
           "includePaths": ["lib", "lib/core/src/lib"]
-        },
-        "styles": ["demo-shell/src/styles.scss"]
+        }
       }
     },
     "lint": {
@@ -62,8 +71,6 @@
         "configDir": "lib/core/.storybook",
         "compodoc": false,
         "styles": [
-          "demo-shell/src/styles.scss",
-          "demo-shell/src/custom-style-dev.scss",
           "node_modules/cropperjs/dist/cropper.min.css",
           "node_modules/pdfjs-dist/web/pdf_viewer.css"
         ],
@@ -85,8 +92,6 @@
         "outputDir": "dist/storybook/core",
         "compodoc": false,
         "styles": [
-          "demo-shell/src/styles.scss",
-          "demo-shell/src/custom-style-dev.scss",
           "node_modules/cropperjs/dist/cropper.min.css",
           "node_modules/pdfjs-dist/web/pdf_viewer.css",
           "lib/core/src/lib/styles/prebuilt/adf-blue-orange.scss"
@@ -133,7 +138,7 @@
     },
     "npm-publish": {
       "executor": "nx:run-commands",
-      "dependsOn": ["build", "pretheme"],
+      "dependsOn": ["build", "pretheme", "build-schematics"],
       "options": {
         "cwd": "dist/libs/core",
         "commands": [

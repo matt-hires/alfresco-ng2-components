@@ -28,6 +28,8 @@ import { FormService } from '../services/form.service';
 import { FormFieldComponent } from './form-field/form-field.component';
 import { FORM_FIELD_MODEL_RENDER_MIDDLEWARE, FormFieldModelRenderMiddleware } from './middlewares/middleware';
 import { ContainerModel, FormFieldModel, FormModel, TabModel } from './widgets';
+import { FieldStylePipe } from '../pipes/field-style.pipe';
+import { HeaderWidgetComponent } from './widgets/header/header.widget';
 
 @Component({
     selector: 'adf-form-renderer',
@@ -55,7 +57,9 @@ import { ContainerModel, FormFieldModel, FormModel, TabModel } from './widgets';
         FormsModule,
         JsonPipe,
         UpperCasePipe,
-        NgClass
+        FieldStylePipe,
+        NgClass,
+        HeaderWidgetComponent
     ],
     encapsulation: ViewEncapsulation.None
 })
@@ -99,12 +103,6 @@ export class FormRendererComponent<T> implements OnInit, OnDestroy {
 
     visibleTabs(): TabModel[] {
         return this.formDefinition.tabs.filter((tab) => tab.isVisible);
-    }
-
-    onExpanderClicked(content: ContainerModel) {
-        if (content?.isCollapsible()) {
-            content.isExpanded = !content.isExpanded;
-        }
     }
 
     getNumberOfColumns(content: ContainerModel): number {

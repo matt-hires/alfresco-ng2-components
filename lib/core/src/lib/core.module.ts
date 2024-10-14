@@ -39,8 +39,6 @@ import { CORE_DIRECTIVES } from './directives/directive.module';
 import { CORE_PIPES } from './pipes/pipe.module';
 import { TranslationService } from './translation/translation.service';
 import { TranslateLoaderService } from './translation/translate-loader.service';
-import { directionalityConfigFactory } from './common/services/directionality-config-factory';
-import { DirectionalityConfigService } from './common/services/directionality-config.service';
 import { SEARCH_TEXT_INPUT_DIRECTIVES } from './search-text/search-text-input.module';
 import { AdfHttpClient } from '@alfresco/adf-core/api';
 import { AuthenticationInterceptor, Authentication } from '@alfresco/adf-core/auth';
@@ -50,7 +48,6 @@ import { MAT_SNACK_BAR_DEFAULT_OPTIONS } from '@angular/material/snack-bar';
 import { loadAppConfig } from './app-config/app-config.loader';
 import { AppConfigService } from './app-config/app-config.service';
 import { StorageService } from './common/services/storage.service';
-import { AlfrescoApiLoaderService, createAlfrescoApiInstance } from './api-factories/alfresco-api-v2-loader.service';
 import { MomentDateAdapter } from './common/utils/moment-date-adapter';
 import { AppConfigPipe, StoragePrefixFactory } from './app-config';
 import { IconComponent } from './icon';
@@ -146,12 +143,6 @@ export class CoreModule {
                     deps: [AppConfigService, StorageService, AdfHttpClient, StoragePrefixFactory],
                     multi: true
                 },
-                {
-                    provide: APP_INITIALIZER,
-                    useFactory: directionalityConfigFactory,
-                    deps: [DirectionalityConfigService],
-                    multi: true
-                },
                 { provide: HTTP_INTERCEPTORS, useClass: AuthenticationInterceptor, multi: true },
                 { provide: Authentication, useClass: AuthenticationService },
                 {
@@ -159,12 +150,6 @@ export class CoreModule {
                     useValue: {
                         duration: 10000
                     }
-                },
-                {
-                    provide: APP_INITIALIZER,
-                    useFactory: createAlfrescoApiInstance,
-                    deps: [AlfrescoApiLoaderService],
-                    multi: true
                 }
             ]
         };

@@ -28,13 +28,15 @@ import {
     AppConfigService,
     AppConfigValues
 } from '@alfresco/adf-core';
-import { ContentNodeDialogService, ContentModule } from '@alfresco/adf-content-services';
+import { ContentNodeDialogService } from '@alfresco/adf-content-services';
 import { of } from 'rxjs';
 import { Node } from '@alfresco/js-api';
 import { ProcessTestingModule } from '../../../testing/process.testing.module';
 import { AttachFileWidgetDialogService } from './attach-file-widget-dialog.service';
 import { ActivitiContentService } from '../../services/activiti-alfresco.service';
 import { ProcessContentService } from '../../services/process-content.service';
+import { RouterTestingModule } from '@angular/router/testing';
+import { ActivatedRoute, Router } from '@angular/router';
 
 const fakeRepositoryListAnswer = [
     {
@@ -145,6 +147,8 @@ describe('AttachFileWidgetComponent', () => {
     let fixture: ComponentFixture<AttachFileWidgetComponent>;
     let element: HTMLInputElement;
     let activitiContentService: ActivitiContentService;
+    let router: Router;
+    let activatedRoute: ActivatedRoute;
     let appConfigService: AppConfigService;
     let contentNodeDialogService: ContentNodeDialogService;
     let processContentService: ProcessContentService;
@@ -154,11 +158,24 @@ describe('AttachFileWidgetComponent', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [ProcessTestingModule, ContentModule.forRoot()]
+            imports: [ProcessTestingModule, AttachFileWidgetComponent, RouterTestingModule],
+            providers: [
+                {
+                    provide: ActivatedRoute,
+                    useValue: {
+                        snapshot: {
+                            queryParams: {}
+                        },
+                        queryParams: of({})
+                    }
+                }
+            ]
         });
         fixture = TestBed.createComponent(AttachFileWidgetComponent);
         widget = fixture.componentInstance;
         element = fixture.nativeElement;
+        router = TestBed.inject(Router);
+        activatedRoute = TestBed.inject(ActivatedRoute);
         activitiContentService = TestBed.inject(ActivitiContentService);
         contentNodeDialogService = TestBed.inject(ContentNodeDialogService);
         processContentService = TestBed.inject(ProcessContentService);
@@ -170,6 +187,17 @@ describe('AttachFileWidgetComponent', () => {
 
     afterEach(() => {
         fixture.destroy();
+    });
+
+    it('should add file to tempFilesList when form has value and file source is configured', () => {
+        spyOn(activitiContentService, 'getAlfrescoRepositories').and.returnValue(of(fakeRepositoryListAnswer));
+        spyOn(widget, 'isFileSourceConfigured').and.returnValue(true);
+        widget.field = new FormFieldModel(new FormModel(), {
+            type: FormFieldTypes.UPLOAD,
+            value: [fakePngAnswer]
+        });
+        fixture.detectChanges();
+        expect(widget.isTemporaryFile(fakePngAnswer)).toBeTrue();
     });
 
     it('should show up as simple upload when is configured for only local files', async () => {
@@ -370,6 +398,7 @@ describe('AttachFileWidgetComponent', () => {
         });
         widget.field.id = 'attach-file-attach';
         widget.field.params = definedSourceParams;
+        spyOn(router, 'navigate');
         spyOn(activitiContentService, 'getAlfrescoRepositories').and.returnValue(of(fakeRepositoryListAnswer));
         spyOn(activitiContentService, 'applyAlfrescoNode').and.returnValue(of(fakePngAnswer));
         spyOn(contentNodeDialogService, 'openFileBrowseDialogByFolderId').and.returnValue(of([fakeNode]));
@@ -390,6 +419,11 @@ describe('AttachFileWidgetComponent', () => {
         await fixture.whenStable();
 
         expect(element.querySelector('#file-1155-icon')).not.toBeNull();
+        expect(router.navigate).toHaveBeenCalledWith([], {
+            relativeTo: activatedRoute,
+            queryParams: { nodes: 'fake' },
+            queryParamsHandling: 'merge'
+        });
     });
 
     it('should be able to upload files from local source', async () => {
@@ -464,6 +498,7 @@ describe('AttachFileWidgetComponent', () => {
         });
 
         it('should remove file when remove is clicked', async () => {
+            spyOn(router, 'navigate');
             const menuButton = element.querySelector<HTMLButtonElement>('#file-1155-option-menu');
             expect(menuButton).not.toBeNull();
             menuButton.click();
@@ -478,6 +513,11 @@ describe('AttachFileWidgetComponent', () => {
             await fixture.whenStable();
 
             expect(element.querySelector('#file-1155')).toBeNull();
+            expect(router.navigate).toHaveBeenCalledWith([], {
+                relativeTo: activatedRoute,
+                queryParams: { nodes: '' },
+                queryParamsHandling: 'merge'
+            });
         });
 
         it('should download file when download is clicked', async () => {
@@ -515,19 +555,6 @@ describe('AttachFileWidgetComponent', () => {
             showOption.click();
             fixture.detectChanges();
             await fixture.whenStable();
-        });
-
-        it('should raise formContentClicked event when file has sourceId', async () => {
-            const testFile = {
-                sourceId: '12345',
-                id: '12345',
-                contentAvailable: true
-            };
-            formService.formContentClicked.subscribe((file) => {
-                expect(file).not.toBeNull();
-                expect(file).toBe(testFile);
-            });
-            fixture.componentInstance.onAttachFileClicked(testFile);
         });
 
         it('should not display the show button file when is an external file', async () => {

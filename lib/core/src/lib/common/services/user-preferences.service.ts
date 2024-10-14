@@ -15,14 +15,15 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { inject, Injectable, RendererFactory2 } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { AppConfigService, AppConfigValues } from '../../app-config/app-config.service';
 import { StorageService } from './storage.service';
-import { distinctUntilChanged, map, filter } from 'rxjs/operators';
-import { AlfrescoApiService } from '../../services/alfresco-api.service';
+import { distinctUntilChanged, map } from 'rxjs/operators';
 import { LanguageItem } from './language-item.interface';
+import { DOCUMENT } from '@angular/common';
+import { Directionality, Direction } from '@angular/cdk/bidi';
 
 // eslint-disable-next-line no-shadow
 export enum UserPreferenceValues {
@@ -36,6 +37,9 @@ export enum UserPreferenceValues {
     providedIn: 'root'
 })
 export class UserPreferencesService {
+    private document = inject(DOCUMENT);
+    private rendererFactory = inject(RendererFactory2);
+    private directionality = inject(Directionality);
 
     defaults = {
         paginationSize: 25,
@@ -48,13 +52,20 @@ export class UserPreferencesService {
     private onChangeSubject: BehaviorSubject<any>;
     onChange: Observable<any>;
 
-    constructor(public translate: TranslateService,
-        private appConfig: AppConfigService,
-        private storage: StorageService,
-        private alfrescoApiService: AlfrescoApiService) {
-        this.alfrescoApiService.alfrescoApiInitialized.pipe(filter(status => status)).subscribe(this.initUserPreferenceStatus.bind(this));
+    constructor(public translate: TranslateService, private appConfig: AppConfigService, private storage: StorageService) {
         this.onChangeSubject = new BehaviorSubject(this.userPreferenceStatus);
         this.onChange = this.onChangeSubject.asObservable();
+
+        this.appConfig.onLoad.subscribe(() => {
+            this.initUserPreferenceStatus();
+        });
+
+        const renderer = this.rendererFactory.createRenderer(null, null);
+
+        this.select('textOrientation').subscribe((direction: Direction) => {
+            renderer.setAttribute(this.document.body, 'dir', direction);
+            (this.directionality as any).value = direction;
+        });
     }
 
     private initUserPreferenceStatus() {
@@ -84,11 +95,10 @@ export class UserPreferencesService {
      * @returns Notification callback
      */
     select<T = any>(property: string): Observable<T> {
-        return this.onChange
-            .pipe(
-                map((userPreferenceStatus) => userPreferenceStatus[property]),
-                distinctUntilChanged()
-            );
+        return this.onChange.pipe(
+            map((userPreferenceStatus) => userPreferenceStatus[property]),
+            distinctUntilChanged()
+        );
     }
 
     /**
@@ -117,10 +127,7 @@ export class UserPreferencesService {
         if (!property) {
             return;
         }
-        this.storage.setItem(
-            this.getPropertyKey(property),
-            value
-        );
+        this.storage.setItem(this.getPropertyKey(property), value);
         this.userPreferenceStatus[property] = value;
         this.onChangeSubject.next(this.userPreferenceStatus);
     }
@@ -149,9 +156,7 @@ export class UserPreferencesService {
         if (!property) {
             return false;
         }
-        return this.storage.hasItem(
-            this.getPropertyKey(property)
-        );
+        return this.storage.hasItem(this.getPropertyKey(property));
     }
 
     /**
@@ -168,7 +173,7 @@ export class UserPreferencesService {
      *
      * @param value Name of the prefix
      */
-    setStoragePrefix(value: string) {
+    setStoragePrefix(value: string | null) {
         this.storage.setItem('USER_PROFILE', value || 'GUEST');
         this.initUserPreferenceStatus();
     }
@@ -240,10 +245,12 @@ export class UserPreferencesService {
     }
 
     private getLanguageByKey(key: string): LanguageItem {
-        return (
-            this.appConfig
-                .get<Array<LanguageItem>>(AppConfigValues.APP_CONFIG_LANGUAGES_KEY, [{ key: 'en' } as LanguageItem])
-                .find((language) => key.includes(language.key)) || { key: 'en' } as LanguageItem
-        );
+        const defaultLanguage = { key: 'en' } as LanguageItem;
+
+        const registeredLanguages = this.appConfig.get<Array<LanguageItem>>(AppConfigValues.APP_CONFIG_LANGUAGES_KEY);
+        if (registeredLanguages && Array.isArray(registeredLanguages)) {
+            return registeredLanguages.find((language) => key.includes(language.key)) || defaultLanguage;
+        }
+        return defaultLanguage;
     }
 }

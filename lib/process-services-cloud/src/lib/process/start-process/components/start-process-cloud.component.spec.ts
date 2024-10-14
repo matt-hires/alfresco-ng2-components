@@ -49,12 +49,14 @@ import { ProcessServiceCloudTestingModule } from '../../../testing/process-servi
 import { ProcessNameCloudPipe } from '../../../pipes/process-name-cloud.pipe';
 import { ProcessInstanceCloud } from '../models/process-instance-cloud.model';
 import { ESCAPE } from '@angular/cdk/keycodes';
-import { ProcessDefinitionCloud, TaskVariableCloud } from '@alfresco/adf-process-services-cloud';
+import { ProcessDefinitionCloud } from '../../../models/process-definition-cloud.model';
+import { TaskVariableCloud } from '../../../form/models/task-variable-cloud.model';
 import { first } from 'rxjs/operators';
 import { HarnessLoader } from '@angular/cdk/testing';
 import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
 import { MatAutocompleteHarness } from '@angular/material/autocomplete/testing';
 import { MatButtonHarness } from '@angular/material/button/testing';
+import { FormCloudDisplayMode } from '../../../services/form-fields.interfaces';
 
 describe('StartProcessCloudComponent', () => {
     let loader: HarnessLoader;
@@ -67,6 +69,7 @@ describe('StartProcessCloudComponent', () => {
     let startProcessWithFormSpy: jasmine.Spy;
     let formDefinitionSpy: jasmine.Spy;
     let getStartEventFormStaticValuesMappingSpy: jasmine.Spy;
+    let getStartEventConstantSpy: jasmine.Spy;
 
     const firstChange = new SimpleChange(undefined, 'myApp', true);
 
@@ -112,6 +115,7 @@ describe('StartProcessCloudComponent', () => {
         startProcessSpy = spyOn(processService, 'startProcess').and.returnValue(of(fakeProcessInstance));
         startProcessWithFormSpy = spyOn(processService, 'startProcessWithForm').and.returnValue(of(fakeProcessWithFormInstance));
         getStartEventFormStaticValuesMappingSpy = spyOn(processService, 'getStartEventFormStaticValuesMapping').and.returnValue(of([]));
+        getStartEventConstantSpy = spyOn(processService, 'getStartEventConstants').and.returnValue(of([]));
         loader = TestbedHarnessEnvironment.loader(fixture);
     });
 
@@ -119,6 +123,56 @@ describe('StartProcessCloudComponent', () => {
         fixture.destroy();
         TestBed.resetTestingModule();
     });
+
+    /**
+     * Setup the component with the given start event information.
+     * @param values the values for the form
+     * @param staticValues the static values retrieved from the API for the form
+     * @param constantValues the constant values retrieved from the API for customising the buttons
+     * @returns the start and cancel buttons HTML elements
+     */
+    function loadWithStartEventInformation(
+        values?: TaskVariableCloud[],
+        staticValues?: TaskVariableCloud[] | Error,
+        constantValues?: TaskVariableCloud[] | Error
+    ): {
+        startButton: any;
+        cancelButton: any;
+    } {
+        if (values) {
+            component.values = values;
+        }
+        if (staticValues) {
+            if (staticValues instanceof Error) {
+                getStartEventConstantSpy.and.returnValue(throwError(() => staticValues));
+            } else {
+                getStartEventFormStaticValuesMappingSpy.and.returnValue(of(staticValues));
+            }
+        }
+        if (constantValues) {
+            if (constantValues instanceof Error) {
+                getStartEventConstantSpy.and.returnValue(throwError(() => constantValues));
+            } else {
+                getStartEventConstantSpy.and.returnValue(of(constantValues));
+            }
+        }
+
+        component.name = 'My new process';
+        component.processDefinitionName = 'processwithoutform2';
+        getDefinitionsSpy.and.returnValue(of(fakeSingleProcessDefinitionWithoutForm(component.processDefinitionName)));
+        fixture.detectChanges();
+
+        const change = new SimpleChange(null, 'MyApp', true);
+        component.ngOnChanges({ appName: change });
+        fixture.detectChanges();
+        tick(550);
+        fixture.detectChanges();
+
+        const startButton = fixture.nativeElement.querySelector('#button-start');
+        const cancelButton = fixture.nativeElement.querySelector('#cancel_process');
+
+        return { startButton, cancelButton };
+    }
 
     describe('start a process without start form', () => {
         beforeEach(() => {
@@ -197,19 +251,47 @@ describe('StartProcessCloudComponent', () => {
                 new TaskVariableCloud({ name: 'static2', value: 0 }),
                 new TaskVariableCloud({ name: 'static3', value: true })
             ];
-            component.name = 'My new process';
-            component.processDefinitionName = 'processwithoutform2';
-            component.values = values;
-            getDefinitionsSpy.and.returnValue(of(fakeSingleProcessDefinitionWithoutForm(component.processDefinitionName)));
-            getStartEventFormStaticValuesMappingSpy.and.returnValue(of(staticInputs));
-            fixture.detectChanges();
 
-            const change = new SimpleChange(null, 'MyApp', true);
-            component.ngOnChanges({ appName: change });
-            fixture.detectChanges();
-            tick(550);
+            loadWithStartEventInformation(values, staticInputs);
+
             expect(component.resolvedValues).toEqual(staticInputs.concat(values));
         }));
+
+        describe('start event constants', () => {
+            it('should not display the buttons when they are disabled by the constants', fakeAsync(() => {
+                const constants: TaskVariableCloud[] = [
+                    new TaskVariableCloud({ name: 'startEnabled', value: 'false' }),
+                    new TaskVariableCloud({ name: 'cancelEnabled', value: 'false' })
+                ];
+
+                const { startButton, cancelButton } = loadWithStartEventInformation(null, null, constants);
+
+                expect(startButton).toBeNull();
+                expect(cancelButton).toBeNull();
+            }));
+
+            it('should display the customised button labels when they are set in the constants', fakeAsync(() => {
+                const constants: TaskVariableCloud[] = [
+                    new TaskVariableCloud({ name: 'startEnabled', value: 'true' }),
+                    new TaskVariableCloud({ name: 'startLabel', value: 'Start' }),
+                    new TaskVariableCloud({ name: 'cancelEnabled', value: 'true' }),
+                    new TaskVariableCloud({ name: 'cancelLabel', value: 'Cancel' })
+                ];
+                const { startButton, cancelButton } = loadWithStartEventInformation(null, null, constants);
+
+                expect(startButton.textContent?.trim()).toEqual('Start');
+                expect(cancelButton.textContent?.trim()).toEqual('Cancel');
+            }));
+
+            it('should load with default values when retrieving the constants fails', fakeAsync(() => {
+                const { startButton, cancelButton } = loadWithStartEventInformation(null, null, new Error('test'));
+
+                expect(startButton).not.toBeNull();
+                expect(cancelButton).not.toBeNull();
+                expect(startButton.textContent?.trim()).toEqual(component.defaultStartProcessButtonLabel);
+                expect(cancelButton.textContent?.trim()).toEqual(component.defaultCancelProcessButtonLabel);
+            }));
+        });
     });
 
     describe('start a process with start form', () => {
@@ -251,6 +333,44 @@ describe('StartProcessCloudComponent', () => {
 
         it('should be able to start a process with a valid form', async () => {
             formDefinitionSpy.and.returnValue(of(fakeStartForm));
+            getDefinitionsSpy.and.returnValue(of(fakeSingleProcessDefinition('processwithform')));
+            typeValueInto('[data-automation-id="adf-inplace-input"]', 'My new process with form');
+            typeValueInto('#processDefinitionName', 'processwithform');
+            fixture.detectChanges();
+            await fixture.whenStable();
+
+            fixture.detectChanges();
+            const firstNameEl = fixture.nativeElement.querySelector('#firstName');
+            expect(firstNameEl).toBeDefined();
+            const lastNameEl = fixture.nativeElement.querySelector('#lastName');
+            expect(lastNameEl).toBeDefined();
+            const startBtn = fixture.nativeElement.querySelector('#button-start');
+            expect(component.formCloud.isValid).toBe(true);
+            expect(startBtn.disabled).toBe(false);
+        });
+
+        it('should be able to start a process with form full display mode', async () => {
+            component.displayModeConfigurations = [
+                {
+                    displayMode: FormCloudDisplayMode.fullScreen,
+                    options: {
+                        onDisplayModeOn: () => {},
+                        onDisplayModeOff: () => {},
+                        onCompleteTask: () => {},
+                        onSaveTask: () => {},
+                        fullscreen: true,
+                        displayToolbar: true,
+                        displayCloseButton: true,
+                        trapFocus: true
+                    }
+                }
+            ];
+
+            const fakeStartFormClone = structuredClone(fakeStartForm);
+
+            (fakeStartFormClone.formRepresentation as any).displayMode = FormCloudDisplayMode.fullScreen;
+
+            formDefinitionSpy.and.returnValue(of(fakeStartFormClone));
             getDefinitionsSpy.and.returnValue(of(fakeSingleProcessDefinition('processwithform')));
             typeValueInto('[data-automation-id="adf-inplace-input"]', 'My new process with form');
             typeValueInto('#processDefinitionName', 'processwithform');
@@ -697,6 +817,36 @@ describe('StartProcessCloudComponent', () => {
 
             startButton.triggerEventHandler('click', null);
             expect(startProcessSpy).toHaveBeenCalledWith(component.appName, payload);
+        });
+
+        it('should call service with the correct parameters when formCloud is defined and custom outcome is clicked', async () => {
+            formDefinitionSpy.and.returnValue(of(fakeFormModelJson));
+            component.ngOnChanges({ appName: firstChange });
+            component.processForm.controls['processInstanceName'].setValue('My Process 1');
+            component.appName = 'test app name';
+            component.formCloud = new FormModel(JSON.stringify(fakeFormModelJson));
+            component.formCloud.values = { dropdown: { id: '1', name: 'label 2' } };
+            component.processDefinitionCurrent = fakeProcessDefinitions[2];
+            component.processPayloadCloud.processDefinitionKey = fakeProcessDefinitions[2].key;
+
+            const payload: ProcessWithFormPayloadCloud = new ProcessWithFormPayloadCloud({
+                processName: component.processInstanceName.value,
+                processDefinitionKey: fakeProcessDefinitions[2].key,
+                variables: {},
+                values: component.formCloud.values,
+                outcome: 'custom_outcome'
+            });
+
+            fixture.detectChanges();
+
+            component.onCustomOutcomeClicked('custom_outcome');
+
+            expect(startProcessWithFormSpy).toHaveBeenCalledWith(
+                component.appName,
+                fakeProcessDefinitions[2].formKey,
+                fakeProcessDefinitions[2].version,
+                payload
+            );
         });
 
         it('should call service with the correct parameters when variables are undefined and formCloud is defined', async () => {

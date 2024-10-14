@@ -26,13 +26,26 @@ export interface FormRepresentation {
     version?: number;
     formDefinition?: FormDefinition;
     standAlone?: boolean;
-    displayMode?: FormCloudDisplayMode;
+    displayMode?: string;
 }
 
 export interface FormTab {
     id: string;
     title: string;
     visibilityCondition: VisibilityCondition | null;
+}
+
+export interface FormTheme {
+    form: {
+        [key: string]: string;
+    };
+    widgets: {
+        [key: string]: {
+            [key: string]: {
+                [key: string]: string;
+            };
+        };
+    };
 }
 
 export interface FormOutcome {
@@ -46,6 +59,7 @@ export interface FormDefinition {
     outcomes: FormOutcome[];
     metadata: any;
     variables: any[];
+    theme?: FormTheme;
 }
 
 export interface Container {
@@ -59,8 +73,19 @@ export interface Container {
     };
 }
 
-export type FormFieldRepresentation = (DateField | DateTimeField | TextField | AttachFileField | DropDownField |
-    RadioField | TypeaheadField | PeopleField | AmountField | NumberField | CheckboxField | HyperlinkField);
+export type FormFieldRepresentation =
+    | DateField
+    | DateTimeField
+    | TextField
+    | AttachFileField
+    | DropDownField
+    | RadioField
+    | TypeaheadField
+    | PeopleField
+    | AmountField
+    | NumberField
+    | CheckboxField
+    | HyperlinkField;
 
 export interface AttachFileField extends FormField {
     required: boolean;
@@ -125,6 +150,7 @@ export interface FormField {
         [anyKey: string]: any;
     };
     visibilityCondition: null | VisibilityCondition;
+    style?: string;
 }
 
 export interface FormOption {
@@ -240,22 +266,27 @@ export interface FormCloudDisplayModeConfigurationOptions {
     onSaveTask(id?: string): void;
     onDisplayModeOn(id?: string): void;
     onDisplayModeOff(id?: string): void;
+    fullscreen?: boolean;
+    displayToolbar?: boolean;
+    displayCloseButton?: boolean;
+    trapFocus?: boolean;
     [key: string]: any;
-};
+}
 
 export interface FormCloudDisplayModeConfiguration {
-    displayMode: FormCloudDisplayMode;
+    displayMode: string;
     options?: FormCloudDisplayModeConfigurationOptions;
     default?: boolean;
-};
+}
 
 // eslint-disable-next-line no-shadow
 export enum FormCloudDisplayMode {
     inline = 'inline',
-    fullScreen = 'fullScreen'
-};
+    fullScreen = 'fullScreen',
+    standalone = 'standalone'
+}
 
 export interface FormCloudDisplayModeChange {
-    displayMode: FormCloudDisplayMode;
+    displayMode: string;
     id?: string;
-};
+}

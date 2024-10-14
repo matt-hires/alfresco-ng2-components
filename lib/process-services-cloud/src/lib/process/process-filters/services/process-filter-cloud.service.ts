@@ -16,21 +16,43 @@
  */
 
 import { Injectable, inject } from '@angular/core';
-import { Observable, of, BehaviorSubject } from 'rxjs';
+import { Observable, of, BehaviorSubject, Subject } from 'rxjs';
 import { ProcessFilterCloudModel } from '../models/process-filter-cloud.model';
 import { switchMap, map } from 'rxjs/operators';
 import { PROCESS_FILTERS_SERVICE_TOKEN } from '../../../services/cloud-token.service';
 import { PreferenceCloudServiceInterface } from '../../../services/preference-cloud.interface';
 import { IdentityUserService } from '../../../people/services/identity-user.service';
+import { NotificationCloudService } from '../../../services/notification-cloud.service';
+import { TaskCloudEngineEvent } from '../../../models/engine-event-cloud.model';
+
+const PROCESS_EVENT_SUBSCRIPTION_QUERY = `
+    subscription {
+        engineEvents(eventType: [
+            PROCESS_CANCELLED
+            PROCESS_COMPLETED
+            PROCESS_CREATED
+            PROCESS_RESUMED
+            PROCESS_SUSPENDED
+            PROCESS_STARTED
+        ]) {
+            eventType
+            entity
+        }
+    }
+`;
+
 @Injectable({
     providedIn: 'root'
 })
 export class ProcessFilterCloudService {
     private filtersSubject: BehaviorSubject<ProcessFilterCloudModel[]>;
     filters$: Observable<ProcessFilterCloudModel[]>;
+    private filterKeyToBeRefreshedSource = new Subject<string>();
+    filterKeyToBeRefreshed$: Observable<string> = this.filterKeyToBeRefreshedSource.asObservable();
 
     private readonly preferenceService = inject<PreferenceCloudServiceInterface>(PROCESS_FILTERS_SERVICE_TOKEN);
     private readonly identityUserService = inject(IdentityUserService);
+    private readonly notificationCloudService = inject(NotificationCloudService);
 
     constructor() {
         this.filtersSubject = new BehaviorSubject([]);
@@ -376,5 +398,20 @@ export class ProcessFilterCloudService {
                 order: 'DESC'
             })
         ];
+    }
+
+    getProcessNotificationSubscription(appName: string): Observable<TaskCloudEngineEvent[]> {
+        return this.notificationCloudService
+            .makeGQLQuery(appName, PROCESS_EVENT_SUBSCRIPTION_QUERY)
+            .pipe(map((events: any) => events?.data?.engineEvents));
+    }
+
+    /**
+     * Refresh filter key
+     *
+     * @param filterKey  Key of the filter
+     */
+    refreshFilter(filterKey: string): void {
+        this.filterKeyToBeRefreshedSource.next(filterKey);
     }
 }

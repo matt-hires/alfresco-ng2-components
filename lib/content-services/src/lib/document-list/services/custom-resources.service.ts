@@ -15,7 +15,8 @@
  * limitations under the License.
  */
 
-import { AlfrescoApiService, PaginationModel } from '@alfresco/adf-core';
+import { PaginationModel } from '@alfresco/adf-core';
+import { AlfrescoApiService } from '../../services/alfresco-api.service';
 import {
     DeletedNodesPaging,
     SearchRequest,
@@ -206,6 +207,8 @@ export class CustomResourcesService {
                                     }),
                                     ...(entry.properties || {})
                                 };
+                                target.aspectNames = entry?.aspectNames ?? [];
+                                target.allowableOperations = entry?.allowableOperations ?? [];
 
                                 return {
                                     entry: target

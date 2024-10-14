@@ -25,12 +25,12 @@ import {
     OnDestroy,
     OnInit,
     Output,
+    SimpleChanges,
     TemplateRef,
     ViewChild,
     ViewEncapsulation
 } from '@angular/core';
 import {
-    AlfrescoApiService,
     CloseButtonPosition,
     Track,
     ViewerComponent,
@@ -42,6 +42,7 @@ import {
     ViewerToolbarComponent,
     ViewUtilService
 } from '@alfresco/adf-core';
+import { AlfrescoApiService } from '../../services/alfresco-api.service';
 import { Subject } from 'rxjs';
 import { ContentApi, Node, NodeEntry, NodesApi, RenditionEntry, SharedlinksApi, Version, VersionEntry, VersionsApi } from '@alfresco/js-api';
 import { RenditionService } from '../../common/services/rendition.service';
@@ -211,7 +212,6 @@ export class AlfrescoViewerComponent implements OnChanges, OnInit, OnDestroy {
     urlFileContent: string;
     fileName: string;
     mimeType: string;
-    originalMimeType: string;
     nodeEntry: NodeEntry;
     tracks: Track[] = [];
     readOnly: boolean = true;
@@ -344,8 +344,10 @@ export class AlfrescoViewerComponent implements OnChanges, OnInit, OnDestroy {
             }
             if (nodeRendition) {
                 urlFileContent = nodeRendition.url;
-                mimeType = nodeRendition.mimeType;
-                this.originalMimeType = nodeData?.content?.mimeType;
+
+                const nodeMimeType = nodeData?.content?.mimeType;
+                const renditionMimeType = nodeRendition.mimeType;
+                mimeType = renditionMimeType || nodeMimeType;
             }
         } else if (viewerType === 'media') {
             this.tracks = await this.renditionService.generateMediaTracksRendition(this.nodeId);
@@ -442,13 +444,13 @@ export class AlfrescoViewerComponent implements OnChanges, OnInit, OnDestroy {
         return !!(this.nodeId || this.sharedLinkId);
     }
 
-    ngOnChanges() {
+    ngOnChanges(changes: SimpleChanges) {
         if (this.showViewer) {
             if (!this.isSourceDefined()) {
                 throw new Error('A content source attribute value is missing.');
             }
 
-            if (this.nodeId) {
+            if (changes.nodeId?.currentValue !== changes.nodeId?.previousValue) {
                 this.setupNode();
             } else if (this.sharedLinkId) {
                 this.setupSharedLink();

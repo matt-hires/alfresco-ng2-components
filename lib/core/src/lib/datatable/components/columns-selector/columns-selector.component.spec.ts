@@ -20,11 +20,11 @@ import { ColumnsSelectorComponent } from './columns-selector.component';
 import { DataColumn } from '../../data/data-column.model';
 import { Observable, Subject } from 'rxjs';
 import { MatMenuTrigger } from '@angular/material/menu';
-import { CoreTestingModule } from '../../../testing';
 import { By } from '@angular/platform-browser';
 import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
 import { HarnessLoader } from '@angular/cdk/testing';
 import { MatCheckboxHarness } from '@angular/material/checkbox/testing';
+import { NoopTranslateModule } from '../../../testing/noop-translate.module';
 
 describe('ColumnsSelectorComponent', () => {
     let fixture: ComponentFixture<ColumnsSelectorComponent>;
@@ -40,8 +40,8 @@ describe('ColumnsSelectorComponent', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [CoreTestingModule, ColumnsSelectorComponent]
-        }).compileComponents();
+            imports: [NoopTranslateModule, ColumnsSelectorComponent]
+        });
 
         fixture = TestBed.createComponent(ColumnsSelectorComponent);
         loader = TestbedHarnessEnvironment.loader(fixture);
@@ -90,6 +90,8 @@ describe('ColumnsSelectorComponent', () => {
 
         fixture.detectChanges();
     });
+
+    afterEach(() => fixture.destroy());
 
     it('should clear search after closing menu', fakeAsync(() => {
         menuOpenedTrigger.next();
