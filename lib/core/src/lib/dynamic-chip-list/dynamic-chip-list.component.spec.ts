@@ -330,5 +330,15 @@ describe('DynamicChipListComponent', () => {
             fixture.detectChanges();
             expect(viewMoreButton.hidden).toBeTrue();
         }));
+
+        it('should not render View more button if there are no chips', fakeAsync(() => {
+            renderChips();
+            component.chips = [];
+            tick();
+            fixture.detectChanges();
+
+            expect(component.chipsToDisplay).toEqual([]);
+            expect(findViewMoreButton().hidden).toBeTrue();
+        }));
     });
 });

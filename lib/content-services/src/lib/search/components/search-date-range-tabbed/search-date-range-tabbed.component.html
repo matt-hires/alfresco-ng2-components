@@ -5,9 +5,8 @@
             [dateFormat]="settings.dateFormat"
             [maxDate]="settings.maxDate"
             [field]="field"
-            [initialValue]="startValue"
+            [initialValue]="preselectedValues[field]"
             (changed)="onDateRangedValueChanged($event, field)"
-            (valid)="tabsValidity[field]=$event">
-        </adf-search-date-range>
+            (valid)="tabsValidity[field]=$event" />
     </ng-container>
 </adf-search-filter-tabbed>

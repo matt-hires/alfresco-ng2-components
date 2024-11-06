@@ -50,7 +50,7 @@ jobs:
           echo "Set TAG with name: ${TAG_NPM}"
           echo "TAG_NPM=${TAG_NPM}" >> $GITHUB_ENV
       - name: Checkout repository
-        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
       - uses: ./.github/actions/setup
@@ -74,7 +74,7 @@ jobs:
       packages: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
       - uses: ./.github/actions/setup
@@ -98,25 +98,25 @@ jobs:
             setMigrations();
       - name: Build libraries
         run: |
-          npx nx affected:build $NX_CALCULATION_FLAGS --prod --skip-nx-cache
-          npx nx affected $NX_CALCULATION_FLAGS --target=pretheme
-          npx nx affected $NX_CALCULATION_FLAGS --target=build-schematics
-      - uses: actions/setup-node@0a44ba7841725637a19e28fa30b79a866c81b0a6 # v4.0.4
+          npx nx run-many --target=build --prod --exclude="demoshell" --skip-nx-cache
+          npx nx run-many  --target=pretheme
+          npx nx run-many  --target=build-schematics
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         name: release libraries GH registry
         with:
           node-version-file: '.nvmrc'
           registry-url: 'https://npm.pkg.github.com'
           scope: '@alfresco'
-      - run: npx nx affected --target=npm-publish $NX_CALCULATION_FLAGS --tag=branch|| exit 1
+      - run: npx nx run-many --target=npm-publish --tag=branch|| exit 1
         env:
           NODE_AUTH_TOKEN: ${{ secrets.PAT_WRITE_PKG }}
-      - uses: actions/setup-node@0a44ba7841725637a19e28fa30b79a866c81b0a6 # v4.0.4
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         name: release libraries Npm registry
         with:
           node-version-file: '.nvmrc'
           registry-url: 'https://${{ vars.NPM_REGISTRY_ADDRESS }}'
           scope: '@alfresco'
-      - run: npx nx affected --target=npm-publish $NX_CALCULATION_FLAGS --tag=branch || exit 1
+      - run: npx nx run-many --target=npm-publish --tag=branch || exit 1
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_REGISTRY_TOKEN }}
 
@@ -126,5 +126,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: ./.github/actions/npm-check-bundle

@@ -28,6 +28,7 @@ import { EMPTY, of } from 'rxjs';
 import { MatDialogModule } from '@angular/material/dialog';
 import { RouterTestingModule } from '@angular/router/testing';
 import { NoopTranslateModule } from '../../testing/noop-translate.module';
+import { NoopAuthModule } from '../../testing';
 
 describe('AuthGuardService', () => {
     let state: RouterStateSnapshot;
@@ -42,17 +43,17 @@ describe('AuthGuardService', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [NoopTranslateModule, MatDialogModule, RouterTestingModule],
+            imports: [NoopTranslateModule, MatDialogModule, RouterTestingModule, NoopAuthModule],
             providers: [
                 AppConfigService,
-                StorageService,
-                { provide: RedirectAuthService, useValue: { onLogin: EMPTY, onTokenReceived: of() } },
+                { provide: RedirectAuthService, useValue: { onLogin: EMPTY, onTokenReceived: of(), init: () => {} } },
                 {
                     provide: OidcAuthenticationService,
                     useValue: {
                         ssoLogin: () => {},
                         isPublicUrl: () => false,
-                        hasValidIdToken: () => false
+                        hasValidIdToken: () => false,
+                        shouldPerformSsoLogin$: of(true)
                     }
                 }
             ]
@@ -142,6 +143,19 @@ describe('AuthGuardService', () => {
 
         expect(await authGuard).toBeFalsy();
         expect(oidcAuthenticationService.ssoLogin).toHaveBeenCalledTimes(1);
+    });
+
+    it('should NOT call ssoLogin if user is authenticated or discovery document is not loaded', async () => {
+        spyOn(oidcAuthenticationService, 'ssoLogin').and.stub();
+        spyOn(authService, 'isLoggedIn').and.returnValue(false);
+        spyOn(authService, 'isOauth').and.returnValue(true);
+        appConfigService.config.oauth2.silentLogin = true;
+        oidcAuthenticationService.shouldPerformSsoLogin$ = of(false);
+
+        authGuard = TestBed.runInInjectionContext(() => AuthGuard(route, state)) as Promise<boolean>;
+
+        expect(await authGuard).toBeFalsy();
+        expect(oidcAuthenticationService.ssoLogin).toHaveBeenCalledTimes(0);
     });
 
     it('should set redirect url', async () => {

@@ -45,10 +45,8 @@
     </p>
     <div class="adf-tags-list">
         <mat-list *ngIf="!spinnerVisible && existingTags" [disabled]="isOnlyCreateMode()">
-            <mat-list-item *ngFor="let tagRow of existingTags" class="adf-tag"
-                           (click)="addExistingTagToTagsToAssign(tagRow)">
-                {{ tagRow.entry.tag }}
-            </mat-list-item>
+            <!--NOSONAR-->
+            <mat-list-item *ngFor="let tagRow of existingTags" class="adf-tag" (keyup.enter)="addExistingTagToTagsToAssign(tagRow)" (click)="addExistingTagToTagsToAssign(tagRow)">{{ tagRow.entry.tag }}</mat-list-item>
             <p *ngIf="!existingTags?.length">{{ 'TAG.TAGS_CREATOR.NO_EXISTING_TAGS' | translate }}</p>
         </mat-list>
         <mat-spinner
@@ -56,7 +54,6 @@
             class="adf-tags-creator-spinner"
             [diameter]="50"
             [attr.aria-label]="'TAG.TAGS_CREATOR.TAGS_LOADING' | translate"
-        >
-        </mat-spinner>
+        />
     </div>
 </div>

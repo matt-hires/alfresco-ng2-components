@@ -16,7 +16,7 @@
  */
 
 import { AlfrescoApiService } from '@alfresco/adf-content-services';
-import { ADF_DATE_FORMATS, FullNamePipe, NoopTranslateModule, UserPreferencesService } from '@alfresco/adf-core';
+import { ADF_DATE_FORMATS, FullNamePipe, NoopAuthModule, NoopTranslateModule, UserPreferencesService } from '@alfresco/adf-core';
 import { HarnessLoader } from '@angular/cdk/testing';
 import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
 import { SimpleChange } from '@angular/core';
@@ -72,7 +72,7 @@ describe('EditProcessFilterCloudComponent', () => {
     let dialog: MatDialog;
     let appsService: AppsProcessCloudService;
     let processService: ProcessCloudService;
-    let getRunningApplicationsSpy: jasmine.Spy;
+    let getDeployedApplicationsSpy: jasmine.Spy;
     let getProcessFilterByIdSpy: jasmine.Spy;
     let alfrescoApiService: AlfrescoApiService;
     let userPreferencesService: UserPreferencesService;
@@ -101,6 +101,7 @@ describe('EditProcessFilterCloudComponent', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [
+                NoopAuthModule,
                 MatIconTestingModule,
                 MatDialogModule,
                 NoopTranslateModule,
@@ -144,7 +145,7 @@ describe('EditProcessFilterCloudComponent', () => {
                 })
         } as any);
         getProcessFilterByIdSpy = spyOn(service, 'getFilterById').and.returnValue(of(fakeFilter));
-        getRunningApplicationsSpy = spyOn(appsService, 'getDeployedApplicationsByStatus').and.returnValue(of(fakeApplicationInstance));
+        getDeployedApplicationsSpy = spyOn(appsService, 'getDeployedApplicationsByStatus').and.returnValue(of(fakeApplicationInstance));
         spyOn(alfrescoApiService, 'getInstance').and.returnValue(mock);
         spyOn(userPreferencesService, 'select').and.returnValue(of({ localize: 'en', formatLong: {} }));
         fixture.detectChanges();
@@ -560,7 +561,7 @@ describe('EditProcessFilterCloudComponent', () => {
         expect(orderController.value).toEqual('ASC');
     });
 
-    it('should able to fetch running applications when appName property defined in the input', async () => {
+    it('should able to fetch deployed applications when appName property defined in the input', async () => {
         component.filterProperties = ['appName', 'processName'];
 
         fixture.detectChanges();
@@ -574,7 +575,7 @@ describe('EditProcessFilterCloudComponent', () => {
 
         const appController = component.editProcessFilterForm.get('appName');
 
-        expect(getRunningApplicationsSpy).toHaveBeenCalled();
+        expect(getDeployedApplicationsSpy).toHaveBeenCalled();
         expect(appController).toBeDefined();
         expect(appController.value).toEqual('mock-app-name');
     });
@@ -593,7 +594,7 @@ describe('EditProcessFilterCloudComponent', () => {
         const appController = component.editProcessFilterForm.get('appName');
         const appVersionController = component.editProcessFilterForm.get('appVersion');
 
-        expect(getRunningApplicationsSpy).toHaveBeenCalled();
+        expect(getDeployedApplicationsSpy).toHaveBeenCalled();
         expect(appController).toBeDefined();
         expect(appController.value).toEqual('mock-app-name');
         expect(appVersionController).toBeDefined();
@@ -766,7 +767,7 @@ describe('EditProcessFilterCloudComponent', () => {
         component.ngOnChanges({ id: processFilterIdChange2 });
         fixture.detectChanges();
 
-        expect(getRunningApplicationsSpy).toHaveBeenCalledTimes(2);
+        expect(getDeployedApplicationsSpy).toHaveBeenCalledTimes(2);
         expect(component.applicationNames).toBeTruthy();
         expect(component.applicationNames).toBe(formerProcessDefinitions);
     });
@@ -1265,8 +1266,8 @@ describe('EditProcessFilterCloudComponent', () => {
         component.environmentList = fakeEnvironmentList;
         component.environmentId = fakeEnvironmentList[0].id;
 
-        getRunningApplicationsSpy.and.returnValue(of(fakeApplicationInstanceWithEnvironment));
-        component.getRunningApplications();
+        getDeployedApplicationsSpy.and.returnValue(of(fakeApplicationInstanceWithEnvironment));
+        component.getDeployedApplications();
         expect(component.applicationNames[0].label).toBe('application-new-1 (test-env-name-1)');
     });
 });

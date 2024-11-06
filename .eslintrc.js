@@ -12,7 +12,7 @@ module.exports = {
         '**/docs'
     ],
 
-    plugins: ['@nrwl/nx'],
+    plugins: ['@nx'],
 
     overrides: [
         {
@@ -22,11 +22,10 @@ module.exports = {
                 createDefaultProgram: true
             },
             extends: [
-                'plugin:@nrwl/nx/typescript',
-                'plugin:@nrwl/nx/angular',
+                'plugin:@nx/typescript',
+                'plugin:@nx/angular',
                 'plugin:@cspell/recommended',
-                'plugin:@angular-eslint/ng-cli-compat',
-                'plugin:@angular-eslint/ng-cli-compat--formatting-add-on',
+                'plugin:@angular-eslint/recommended',
                 'plugin:@angular-eslint/template/process-inline-templates',
                 'plugin:jsdoc/recommended-typescript-error'
             ],
@@ -104,6 +103,7 @@ module.exports = {
                     }
                 ],
                 '@typescript-eslint/member-ordering': 'off',
+                '@typescript-eslint/no-empty-function': 'off',
                 'prefer-arrow/prefer-arrow-functions': 'off',
                 'prefer-promise-reject-errors': 'error',
                 'brace-style': 'off',
@@ -185,7 +185,10 @@ module.exports = {
         {
             files: ['*.html'],
             extends: ['plugin:@angular-eslint/template/recommended', 'plugin:@angular-eslint/template/accessibility'],
-            rules: {}
+            parser: '@angular-eslint/template-parser',
+            rules: {
+                '@angular-eslint/template/prefer-self-closing-tags': 'error'
+            }
         },
         {
             files: ['*.spec.ts'],
@@ -198,6 +201,13 @@ module.exports = {
             files: ['*.ts'],
             extends: ['plugin:@angular-eslint/template/process-inline-templates'],
             excludedFiles: ['*.spec.ts']
+        },
+        {
+            files: ['*.json'],
+            parser: 'jsonc-eslint-parser',
+            rules: {
+                'comma-dangle': ['error', 'never']
+            }
         }
     ],
 

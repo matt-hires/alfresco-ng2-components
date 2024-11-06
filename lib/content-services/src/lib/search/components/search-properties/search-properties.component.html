@@ -46,12 +46,12 @@
     <p class="adf-search-properties-file-type-label">{{ 'SEARCH.SEARCH_PROPERTIES.FILE_TYPE' | translate }}</p>
     <adf-search-chip-autocomplete-input
         [autocompleteOptions]="autocompleteOptions"
+        [preselectedOptions]="preselectedOptions"
         (optionsChanged)="selectedExtensions = $event"
         [onReset$]="reset$"
         [allowOnlyPredefinedValues]="false"
         [compareOption]="compareFileExtensions"
         [formatChipValue]="getExtensionWithoutDot"
         [filter]="filterExtensions"
-        placeholder="SEARCH.SEARCH_PROPERTIES.FILE_TYPE">
-    </adf-search-chip-autocomplete-input>
+        placeholder="SEARCH.SEARCH_PROPERTIES.FILE_TYPE" />
 </form>

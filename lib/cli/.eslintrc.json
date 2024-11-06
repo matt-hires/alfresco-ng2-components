@@ -4,7 +4,7 @@
   "overrides": [
     {
       "files": ["*.ts"],
-      "extends": ["plugin:@nrwl/nx/angular"],
+      "extends": ["plugin:@nx/angular"],
       "parserOptions": {
         "project": ["lib/cli/tsconfig.json"],
         "createDefaultProgram": true
@@ -13,7 +13,7 @@
         "prefer-arrow/prefer-arrow-functions": "off",
         "@typescript-eslint/no-var-requires": "off",
         "@typescript-eslint/naming-convention": "warn",
-        "quote-props": "warn",
+        "quote-props": "off",
         "no-shadow": "warn",
         "no-restricted-syntax": "off",
         "no-underscore-dangle": "off",
@@ -44,7 +44,7 @@
         "project": ["lib/cli/tsconfig.json"],
         "createDefaultProgram": true
       },
-      "extends": ["plugin:@nrwl/nx/angular-template"],
+      "extends": ["plugin:@nx/angular-template"],
       "rules": {}
     }
   ]

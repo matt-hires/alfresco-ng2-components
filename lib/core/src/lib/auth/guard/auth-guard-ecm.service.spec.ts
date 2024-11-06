@@ -28,6 +28,7 @@ import { EMPTY, of } from 'rxjs';
 import { OidcAuthenticationService } from '../oidc/oidc-authentication.service';
 import { NoopTranslateModule } from '../../testing/noop-translate.module';
 
+
 describe('AuthGuardService ECM', () => {
     let authGuard: Promise<boolean>;
     let authService: AuthenticationService;
@@ -50,7 +51,8 @@ describe('AuthGuardService ECM', () => {
                         ssoLogin: () => {},
                         isPublicUrl: () => false,
                         hasValidIdToken: () => false,
-                        isLoggedIn: () => false
+                        isLoggedIn: () => false,
+                        shouldPerformSsoLogin$: of(true)
                     }
                 },
                 { provide: RedirectAuthService, useValue: { onLogin: EMPTY, onTokenReceived: of() } }
