@@ -485,7 +485,6 @@ export class EditProcessFilterCloudComponent implements OnInit, OnChanges, OnDes
 
     /**
      * Delete a process instance filter
-     *
      * @param deleteAction filter action
      */
     delete(deleteAction: ProcessFilterAction) {
@@ -504,7 +503,6 @@ export class EditProcessFilterCloudComponent implements OnInit, OnChanges, OnDes
 
     /**
      * Save As a process instance filter
-     *
      * @param saveAsAction filter action
      */
     saveAs(saveAsAction: ProcessFilterAction) {
@@ -550,7 +548,6 @@ export class EditProcessFilterCloudComponent implements OnInit, OnChanges, OnDes
 
     /**
      * Get sanitized filter name
-     *
      * @param filterName filter name
      * @returns sanitized filter name
      */
@@ -561,7 +558,6 @@ export class EditProcessFilterCloudComponent implements OnInit, OnChanges, OnDes
 
     /**
      * Return name with hyphen
-     *
      * @param name name
      * @returns updated value
      */

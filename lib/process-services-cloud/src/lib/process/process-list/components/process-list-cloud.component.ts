@@ -66,7 +66,9 @@ const PRESET_KEY = 'adf-cloud-process-list.presets';
     styleUrls: ['./process-list-cloud.component.scss'],
     encapsulation: ViewEncapsulation.None
 })
-export class ProcessListCloudComponent extends DataTableSchema<ProcessListDataColumnCustomData> implements OnChanges, AfterContentInit, PaginatedComponent, OnDestroy {
+export class ProcessListCloudComponent
+    extends DataTableSchema<ProcessListDataColumnCustomData>
+    implements OnChanges, AfterContentInit, PaginatedComponent, OnDestroy {
 
     @ViewChild(DataTableComponent) dataTable: DataTableComponent;
 
@@ -206,24 +208,24 @@ export class ProcessListCloudComponent extends DataTableSchema<ProcessListDataCo
     @Input()
     names: string[] = [];
 
-   /**
-    * Filter the processes. Display only processes started by any of the users whose usernames are present in the array.
-    * This input will be used only if PROCESS_SEARCH_API_METHOD_TOKEN is provided with 'POST' value.
-    */
+    /**
+     * Filter the processes. Display only processes started by any of the users whose usernames are present in the array.
+     * This input will be used only if PROCESS_SEARCH_API_METHOD_TOKEN is provided with 'POST' value.
+     */
     @Input()
     initiators: string[] = [];
 
-   /**
-    * Filter the processes. Display only processes present in any of the specified app versions.
-    * This input will be used only if PROCESS_SEARCH_API_METHOD_TOKEN is provided with 'POST' value.
-    */
+    /**
+     * Filter the processes. Display only processes present in any of the specified app versions.
+     * This input will be used only if PROCESS_SEARCH_API_METHOD_TOKEN is provided with 'POST' value.
+     */
     @Input()
     appVersions: string[] = [];
 
-   /**
-    * Filter the processes. Display only processes with provided statuses.
-    * This input will be used only if PROCESS_SEARCH_API_METHOD_TOKEN is provided with 'POST' value.
-    */
+    /**
+     * Filter the processes. Display only processes with provided statuses.
+     * This input will be used only if PROCESS_SEARCH_API_METHOD_TOKEN is provided with 'POST' value.
+     */
     @Input()
     statuses: string[] = [];
 
@@ -295,41 +297,38 @@ export class ProcessListCloudComponent extends DataTableSchema<ProcessListDataCo
 
         this.isLoading = true;
 
-        combineLatest([
-            this.isColumnSchemaCreated$,
-            this.fetchProcessesTrigger$
-        ]).pipe(
-            filter(([isColumnSchemaCreated]) => {
-                return isColumnSchemaCreated;
-            }),
-            switchMap(() => {
-                console.count('load');
-                if (this.searchMethod === 'POST') {
-                    const requestNode = this.createProcessListRequestNode();
-                    this.processListRequestNode = requestNode;
-                    return this.processListCloudService.fetchProcessList(requestNode).pipe(take(1));
-                } else {
-                    const requestNode = this.createRequestNode();
-                    this.requestNode = requestNode;
-                    return this.processListCloudService.getProcessByRequest(requestNode).pipe(take(1));
+        combineLatest([this.isColumnSchemaCreated$, this.fetchProcessesTrigger$])
+            .pipe(
+                filter(([isColumnSchemaCreated]) => isColumnSchemaCreated),
+                switchMap(() => {
+                    console.count('load');
+                    if (this.searchMethod === 'POST') {
+                        const requestNode = this.createProcessListRequestNode();
+                        this.processListRequestNode = requestNode;
+                        return this.processListCloudService.fetchProcessList(requestNode).pipe(take(1));
+                    } else {
+                        const requestNode = this.createRequestNode();
+                        this.requestNode = requestNode;
+                        return this.processListCloudService.getProcessByRequest(requestNode).pipe(take(1));
+                    }
+                }),
+                takeUntil(this.onDestroy$)
+            )
+            .subscribe({
+                next: (processes) => {
+                    this.rows = this.variableMapperService.mapVariablesByColumnTitle(processes.list.entries, this.columns);
+
+                    this.dataAdapter = new ProcessListDatatableAdapter(this.rows, this.columns);
+
+                    this.success.emit(processes);
+                    this.isLoading = false;
+                    this.pagination.next(processes.list.pagination);
+                },
+                error: (error) => {
+                    this.error.emit(error);
+                    this.isLoading = false;
                 }
-            }),
-            takeUntil(this.onDestroy$)
-        ).subscribe({
-            next: (processes) => {
-                this.rows = this.variableMapperService.mapVariablesByColumnTitle(processes.list.entries, this.columns);
-
-                this.dataAdapter = new ProcessListDatatableAdapter(this.rows, this.columns);
-
-                this.success.emit(processes);
-                this.isLoading = false;
-                this.pagination.next(processes.list.pagination);
-            },
-            error: (error) => {
-                this.error.emit(error);
-                this.isLoading = false;
-            }
-        });
+            });
     }
 
     ngAfterContentInit() {
@@ -396,7 +395,6 @@ export class ProcessListCloudComponent extends DataTableSchema<ProcessListDataCo
         }
     }
 
-
     private isAnyPropertyChanged(changes: SimpleChanges): boolean {
         for (const property in changes) {
             if (this.isPropertyChanged(changes, property)) {
@@ -429,7 +427,6 @@ export class ProcessListCloudComponent extends DataTableSchema<ProcessListDataCo
     /**
      * Resets the pagination values and
      * Reloads the process list
-     *
      * @param pagination Pagination values to be set
      */
     updatePagination(pagination: PaginationModel) {

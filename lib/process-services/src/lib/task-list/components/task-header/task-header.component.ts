@@ -175,7 +175,6 @@ export class TaskHeaderComponent implements OnChanges, OnInit {
 
     /**
      * Get the process parent information
-     *
      * @returns a map of process instance and definition
      */
     private getParentInfo(): Map<string, string> {
@@ -187,7 +186,6 @@ export class TaskHeaderComponent implements OnChanges, OnInit {
 
     /**
      * Check if the task has an assignee
-     *
      * @returns `true` if the task has an assignee, otherwise `false`
      */
     hasAssignee(): boolean {
@@ -196,7 +194,6 @@ export class TaskHeaderComponent implements OnChanges, OnInit {
 
     /**
      * Check if the task is assigned to a user
-     *
      * @param userId the id of the user to check
      * @returns `true` if the task assigned to a user, otherwise `false`
      */
@@ -206,7 +203,6 @@ export class TaskHeaderComponent implements OnChanges, OnInit {
 
     /**
      * Check if the task is assigned to the current user
-     *
      * @returns `true` if the task assigned to current user, otherwise `false`
      */
     isAssignedToCurrentUser(): boolean {
@@ -215,7 +211,6 @@ export class TaskHeaderComponent implements OnChanges, OnInit {
 
     /**
      * Check if the user is a candidate member
-     *
      * @returns `true` if user is a candidate member, otherwise false
      */
     isCandidateMember(): boolean {
@@ -224,7 +219,6 @@ export class TaskHeaderComponent implements OnChanges, OnInit {
 
     /**
      * Check if the task is claimable
-     *
      * @returns `true` if task can be claimed, otherwise `false`
      */
     isTaskClaimable(): boolean {
@@ -233,7 +227,6 @@ export class TaskHeaderComponent implements OnChanges, OnInit {
 
     /**
      * Return true if the task claimed by candidate member.
-     *
      * @returns `true` if the task is claimed, otherwise `false`
      */
     isTaskClaimedByCandidateMember(): boolean {
@@ -242,7 +235,6 @@ export class TaskHeaderComponent implements OnChanges, OnInit {
 
     /**
      * Get the status of the task
-     *
      * @returns `Completed` or `Running`
      */
     getTaskStatus(): 'Completed' | 'Running' {
@@ -251,7 +243,6 @@ export class TaskHeaderComponent implements OnChanges, OnInit {
 
     /**
      * Emit the claim event
-     *
      * @param taskId the id of the task to claim
      */
     onClaimTask(taskId: string) {
@@ -260,7 +251,6 @@ export class TaskHeaderComponent implements OnChanges, OnInit {
 
     /**
      * Emit the unclaim event
-     *
      * @param taskId the id of the task to unclaim
      */
     onUnclaimTask(taskId: string) {
@@ -269,7 +259,6 @@ export class TaskHeaderComponent implements OnChanges, OnInit {
 
     /**
      * Returns the task completion state
-     *
      * @returns `true` if the task is completed, otherwise `false`
      */
     isCompleted(): boolean {
@@ -278,7 +267,6 @@ export class TaskHeaderComponent implements OnChanges, OnInit {
 
     /**
      * Check if the form is clickable
-     *
      * @returns `true` if the form is clickable, otherwise `false`
      */
     isFormClickable(): boolean {
@@ -287,7 +275,6 @@ export class TaskHeaderComponent implements OnChanges, OnInit {
 
     /**
      * Get the task duration
-     *
      * @returns the task duration in milliseconds
      */
     getTaskDuration(): string {

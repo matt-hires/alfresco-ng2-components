@@ -122,7 +122,6 @@ export class AppsListComponent implements OnInit, AfterContentInit, OnDestroy {
 
     /**
      * Pass the selected app as next
-     *
      * @param app application model
      */
     selectApp(app: AppDefinitionRepresentation) {
@@ -132,7 +131,6 @@ export class AppsListComponent implements OnInit, AfterContentInit, OnDestroy {
 
     /**
      * Return true if the appId is the current app
-     *
      * @param appId application id
      * @returns `true` if application is selected, otherwise `false`
      */
@@ -142,7 +140,6 @@ export class AppsListComponent implements OnInit, AfterContentInit, OnDestroy {
 
     /**
      * Check if the value of the layoutType property is an allowed value
-     *
      * @returns `true` if layout type is valid, otherwise `false`
      */
     isValidType(): boolean {
@@ -158,7 +155,6 @@ export class AppsListComponent implements OnInit, AfterContentInit, OnDestroy {
 
     /**
      * Check if the layout type is LIST
-     *
      * @returns `true` if current layout is in the list mode, otherwise `false`
      */
     isList(): boolean {
@@ -167,7 +163,6 @@ export class AppsListComponent implements OnInit, AfterContentInit, OnDestroy {
 
     /**
      * Check if the layout type is GRID
-     *
      * @returns `true` if current layout is in the grid mode, otherwise `false`
      */
     isGrid(): boolean {

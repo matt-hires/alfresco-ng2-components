@@ -44,9 +44,8 @@ import { TasksListCloudPreferences } from '../models/tasks-cloud-preferences';
 // eslint-disable-next-line @angular-eslint/directive-class-suffix
 export abstract class BaseTaskListCloudComponent<T = unknown>
     extends DataTableSchema<T>
-    implements OnChanges, AfterContentInit, PaginatedComponent, OnDestroy, OnInit
-// eslint-disable-next-line @typescript-eslint/brace-style
-{
+    implements OnChanges, AfterContentInit, PaginatedComponent, OnDestroy, OnInit {
+
     @ContentChild(CustomEmptyContentTemplateDirective)
     emptyCustomContent: CustomEmptyContentTemplateDirective;
 
