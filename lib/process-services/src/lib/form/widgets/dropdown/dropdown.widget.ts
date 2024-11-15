@@ -18,7 +18,15 @@
 /* eslint-disable @angular-eslint/component-selector */
 
 import { Component, DestroyRef, inject, OnInit, ViewEncapsulation } from '@angular/core';
-import { FormService, FormFieldOption, WidgetComponent, ErrorWidgetComponent, ErrorMessageModel, FormFieldModel } from '@alfresco/adf-core';
+import {
+    FormService,
+    FormFieldOption,
+    WidgetComponent,
+    ErrorWidgetComponent,
+    ErrorMessageModel,
+    FormFieldModel,
+    ReactiveFormWidget
+} from '@alfresco/adf-core';
 import { ProcessDefinitionService } from '../../services/process-definition.service';
 import { TaskFormService } from '../../services/task-form.service';
 import { CommonModule } from '@angular/common';
@@ -48,8 +56,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
     },
     encapsulation: ViewEncapsulation.None
 })
-export class DropdownWidgetComponent extends WidgetComponent implements OnInit {
-    public formsService = inject(FormService);
+export class DropdownWidgetComponent extends WidgetComponent implements OnInit, ReactiveFormWidget {
+    public formService = inject(FormService);
     public taskFormService = inject(TaskFormService);
     public processDefinitionService = inject(ProcessDefinitionService);
     private readonly destroyRef = inject(DestroyRef);
