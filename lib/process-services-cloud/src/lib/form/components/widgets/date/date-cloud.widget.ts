@@ -17,10 +17,8 @@
 
 /* eslint-disable @angular-eslint/component-selector */
 
-import { Component, OnInit, ViewEncapsulation, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, ViewEncapsulation, DestroyRef, inject } from '@angular/core';
 import { DateAdapter, MAT_DATE_FORMATS } from '@angular/material/core';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
 import {
     WidgetComponent,
     FormService,
@@ -38,6 +36,7 @@ import { NgIf } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'date-widget',
@@ -62,7 +61,7 @@ import { MatInputModule } from '@angular/material/input';
     },
     encapsulation: ViewEncapsulation.None
 })
-export class DateCloudWidgetComponent extends WidgetComponent implements OnInit, OnDestroy {
+export class DateCloudWidgetComponent extends WidgetComponent implements OnInit {
     typeId = 'DateCloudWidgetComponent';
 
     minDate: Date = null;
@@ -71,13 +70,13 @@ export class DateCloudWidgetComponent extends WidgetComponent implements OnInit,
 
     dateInputControl: FormControl<Date> = new FormControl<Date>(null);
 
-    private onDestroy$ = new Subject<void>();
-
     public readonly formService = inject(FormService);
     private readonly dateAdapter = inject(DateAdapter);
+    private readonly destroyRef = inject(DestroyRef);
 
     ngOnInit(): void {
-        this.patchFormControl();
+        this.setFormControlValue();
+        this.updateFormControlState();
         this.initDateAdapter();
         this.initRangeSelection();
         this.initStartAt();
@@ -90,8 +89,16 @@ export class DateCloudWidgetComponent extends WidgetComponent implements OnInit,
         this.onFieldChanged(this.field);
     }
 
-    private patchFormControl(): void {
+    updateReactiveFormControl(): void {
+        this.updateFormControlState();
+        this.validateField();
+    }
+
+    private setFormControlValue(): void {
         this.dateInputControl.setValue(this.field.value, { emitEvent: false });
+    }
+
+    private updateFormControlState(): void {
         this.dateInputControl.setValidators(this.isRequired() ? [Validators.required] : []);
         if (this.field?.readOnly || this.readOnly) {
             this.dateInputControl.disable({ emitEvent: false });
@@ -101,7 +108,7 @@ export class DateCloudWidgetComponent extends WidgetComponent implements OnInit,
     }
 
     private subscribeToDateChanges(): void {
-        this.dateInputControl.valueChanges.pipe(takeUntil(this.onDestroy$)).subscribe((newDate: Date) => {
+        this.dateInputControl.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((newDate: Date) => {
             this.field.value = newDate;
             this.updateField();
         });
@@ -197,10 +204,5 @@ export class DateCloudWidgetComponent extends WidgetComponent implements OnInit,
         if (this.field?.maxValue) {
             this.maxDate = parseISO(this.field.maxValue);
         }
-    }
-
-    ngOnDestroy(): void {
-        this.onDestroy$.next();
-        this.onDestroy$.complete();
     }
 }

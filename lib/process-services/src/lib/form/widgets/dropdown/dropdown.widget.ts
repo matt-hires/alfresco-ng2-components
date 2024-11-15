@@ -17,7 +17,7 @@
 
 /* eslint-disable @angular-eslint/component-selector */
 
-import { Component, inject, OnDestroy, OnInit, ViewEncapsulation } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, ViewEncapsulation } from '@angular/core';
 import { FormService, FormFieldOption, WidgetComponent, ErrorWidgetComponent, ErrorMessageModel, FormFieldModel } from '@alfresco/adf-core';
 import { ProcessDefinitionService } from '../../services/process-definition.service';
 import { TaskFormService } from '../../services/task-form.service';
@@ -25,9 +25,9 @@ import { CommonModule } from '@angular/common';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { AbstractControl, FormControl, ReactiveFormsModule, ValidationErrors, ValidatorFn } from '@angular/forms';
-import { filter, takeUntil } from 'rxjs/operators';
-import { Subject } from 'rxjs';
+import { filter } from 'rxjs/operators';
 import { TranslateModule } from '@ngx-translate/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'dropdown-widget',
@@ -48,14 +48,13 @@ import { TranslateModule } from '@ngx-translate/core';
     },
     encapsulation: ViewEncapsulation.None
 })
-export class DropdownWidgetComponent extends WidgetComponent implements OnInit, OnDestroy {
+export class DropdownWidgetComponent extends WidgetComponent implements OnInit {
     public formsService = inject(FormService);
     public taskFormService = inject(TaskFormService);
     public processDefinitionService = inject(ProcessDefinitionService);
+    private readonly destroyRef = inject(DestroyRef);
 
     dropdownControl = new FormControl<FormFieldOption | string>(undefined);
-
-    private readonly onDestroy$ = new Subject<void>();
 
     get isReadOnlyType(): boolean {
         return this.field.type === 'readonly';
@@ -86,12 +85,15 @@ export class DropdownWidgetComponent extends WidgetComponent implements OnInit, 
             }
         }
 
-        this.initFormControl();
+        this.setFormControlValue();
+        this.updateFormControlState();
+        this.subscribeToInputChanges();
+        this.handleErrors();
     }
 
-    ngOnDestroy(): void {
-        this.onDestroy$.next();
-        this.onDestroy$.complete();
+    updateReactiveFormControl(): void {
+        this.updateFormControlState();
+        this.handleErrors();
     }
 
     getValuesByTaskId() {
@@ -122,28 +124,30 @@ export class DropdownWidgetComponent extends WidgetComponent implements OnInit, 
         return !!this.field?.form?.readOnly;
     }
 
-    private initFormControl() {
-        if (this.field?.required) {
-            this.dropdownControl.addValidators([this.customRequiredValidator(this.field)]);
-        }
-
-        if (this.field?.readOnly || this.readOnly) {
-            this.dropdownControl.disable({ emitEvent: false });
-        }
-
+    private subscribeToInputChanges(): void {
         this.dropdownControl.valueChanges
             .pipe(
                 filter(() => !!this.field),
-                takeUntil(this.onDestroy$)
+                takeUntilDestroyed(this.destroyRef)
             )
             .subscribe((value) => {
                 this.setOptionValue(value, this.field);
                 this.handleErrors();
                 this.onFieldChanged(this.field);
             });
+    }
 
+    private setFormControlValue(): void {
         this.dropdownControl.setValue(this.getOptionValue(this.field?.value), { emitEvent: false });
-        this.handleErrors();
+    }
+
+    private updateFormControlState(): void {
+        this.dropdownControl.setValidators(this.isRequired() ? [this.customRequiredValidator(this.field)] : []);
+        if (this.field?.readOnly || this.readOnly) {
+            this.dropdownControl.disable({ emitEvent: false });
+        }
+
+        this.dropdownControl.updateValueAndValidity({ emitEvent: false });
     }
 
     private handleErrors() {
@@ -153,11 +157,13 @@ export class DropdownWidgetComponent extends WidgetComponent implements OnInit, 
 
         if (this.dropdownControl.valid) {
             this.field.validationSummary = new ErrorMessageModel('');
+            this.field.markAsValid();
             return;
         }
 
         if (this.dropdownControl.invalid && this.dropdownControl.errors.required) {
             this.field.validationSummary = new ErrorMessageModel({ message: 'FORM.FIELD.REQUIRED' });
+            this.field.markAsInvalid();
         }
     }
 

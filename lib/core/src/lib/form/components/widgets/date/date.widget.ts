@@ -18,21 +18,20 @@
 /* eslint-disable @angular-eslint/component-selector */
 
 import { NgIf } from '@angular/common';
-import { Component, inject, OnDestroy, OnInit, ViewEncapsulation } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, ViewEncapsulation } from '@angular/core';
 import { FormControl, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { DateAdapter, MAT_DATE_FORMATS } from '@angular/material/core';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { TranslateModule } from '@ngx-translate/core';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
 import { ADF_DATE_FORMATS, AdfDateFnsAdapter, DateFnsUtils, DEFAULT_DATE_FORMAT } from '../../../../common';
 import { FormService } from '../../../services/form.service';
 import { ErrorWidgetComponent } from '../error/error.component';
 import { WidgetComponent } from '../widget.component';
 import { ErrorMessageModel } from '../core/error-message.model';
 import { parseISO } from 'date-fns';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'date-widget',
@@ -56,20 +55,20 @@ import { parseISO } from 'date-fns';
     imports: [MatFormFieldModule, TranslateModule, MatInputModule, MatDatepickerModule, ReactiveFormsModule, ErrorWidgetComponent, NgIf],
     encapsulation: ViewEncapsulation.None
 })
-export class DateWidgetComponent extends WidgetComponent implements OnInit, OnDestroy {
+export class DateWidgetComponent extends WidgetComponent implements OnInit {
     minDate: Date;
     maxDate: Date;
     startAt: Date;
 
     dateInputControl: FormControl<Date> = new FormControl<Date>(null);
 
-    private onDestroy$ = new Subject<void>();
-
     public readonly formService = inject(FormService);
     private readonly dateAdapter = inject(DateAdapter);
+    private readonly destroyRef = inject(DestroyRef);
 
     ngOnInit(): void {
-        this.patchFormControl();
+        this.setFormControlValue();
+        this.updateFormControlState();
         this.initDateAdapter();
         this.initDateRange();
         this.initStartAt();
@@ -81,8 +80,17 @@ export class DateWidgetComponent extends WidgetComponent implements OnInit, OnDe
         this.validateField();
         this.onFieldChanged(this.field);
     }
-    private patchFormControl(): void {
+
+    updateReactiveFormControl(): void {
+        this.updateFormControlState();
+        this.validateField();
+    }
+
+    private setFormControlValue(): void {
         this.dateInputControl.setValue(this.field.value, { emitEvent: false });
+    }
+
+    private updateFormControlState(): void {
         this.dateInputControl.setValidators(this.isRequired() ? [Validators.required] : []);
         if (this.field?.readOnly || this.readOnly) {
             this.dateInputControl.disable({ emitEvent: false });
@@ -92,7 +100,7 @@ export class DateWidgetComponent extends WidgetComponent implements OnInit, OnDe
     }
 
     private subscribeToDateChanges(): void {
-        this.dateInputControl.valueChanges.pipe(takeUntil(this.onDestroy$)).subscribe((newDate: Date) => {
+        this.dateInputControl.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((newDate: Date) => {
             this.field.value = newDate;
             this.updateField();
         });
@@ -163,10 +171,5 @@ export class DateWidgetComponent extends WidgetComponent implements OnInit, OnDe
         if (this.field?.value) {
             this.startAt = this.dateAdapter.parse(this.field.value, DEFAULT_DATE_FORMAT);
         }
-    }
-
-    ngOnDestroy(): void {
-        this.onDestroy$.next();
-        this.onDestroy$.complete();
     }
 }

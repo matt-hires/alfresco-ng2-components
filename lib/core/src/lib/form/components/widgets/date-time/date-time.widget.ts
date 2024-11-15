@@ -18,7 +18,7 @@
 /* eslint-disable @angular-eslint/component-selector */
 
 import { NgIf } from '@angular/common';
-import { Component, inject, OnDestroy, OnInit, ViewEncapsulation } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, ViewEncapsulation } from '@angular/core';
 import { FormControl, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { DateAdapter, MAT_DATE_FORMATS } from '@angular/material/core';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -29,9 +29,8 @@ import { ADF_DATE_FORMATS, ADF_DATETIME_FORMATS, AdfDateFnsAdapter, AdfDateTimeF
 import { FormService } from '../../../services/form.service';
 import { ErrorWidgetComponent } from '../error/error.component';
 import { WidgetComponent } from '../widget.component';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
 import { ErrorMessageModel } from '../core/error-message.model';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'date-time-widget',
@@ -47,19 +46,19 @@ import { ErrorMessageModel } from '../core/error-message.model';
     imports: [NgIf, TranslateModule, MatFormFieldModule, MatInputModule, MatDatetimepickerModule, ReactiveFormsModule, ErrorWidgetComponent],
     encapsulation: ViewEncapsulation.None
 })
-export class DateTimeWidgetComponent extends WidgetComponent implements OnInit, OnDestroy {
+export class DateTimeWidgetComponent extends WidgetComponent implements OnInit {
     minDate: Date;
     maxDate: Date;
     datetimeInputControl: FormControl<Date> = new FormControl<Date>(null);
 
-    private onDestroy$ = new Subject<void>();
-
     public readonly formService = inject(FormService);
     private readonly dateAdapter = inject(DateAdapter);
     private readonly dateTimeAdapter = inject(DatetimeAdapter);
+    private readonly destroyRef = inject(DestroyRef);
 
     ngOnInit(): void {
-        this.patchFormControl();
+        this.setFormControlValue();
+        this.updateFormControlState();
         this.initDateAdapter();
         this.initDateRange();
         this.subscribeToDateChanges();
@@ -71,8 +70,16 @@ export class DateTimeWidgetComponent extends WidgetComponent implements OnInit, 
         this.onFieldChanged(this.field);
     }
 
-    private patchFormControl(): void {
+    updateReactiveFormControl(): void {
+        this.updateFormControlState();
+        this.validateField();
+    }
+
+    private setFormControlValue(): void {
         this.datetimeInputControl.setValue(this.field.value, { emitEvent: false });
+    }
+
+    private updateFormControlState(): void {
         this.datetimeInputControl.setValidators(this.isRequired() ? [Validators.required] : []);
         if (this.field?.readOnly || this.readOnly) {
             this.datetimeInputControl.disable({ emitEvent: false });
@@ -82,7 +89,7 @@ export class DateTimeWidgetComponent extends WidgetComponent implements OnInit, 
     }
 
     private subscribeToDateChanges(): void {
-        this.datetimeInputControl.valueChanges.pipe(takeUntil(this.onDestroy$)).subscribe((newDate: Date) => {
+        this.datetimeInputControl.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((newDate: Date) => {
             this.field.value = newDate;
             this.updateField();
         });
@@ -150,10 +157,5 @@ export class DateTimeWidgetComponent extends WidgetComponent implements OnInit, 
         if (this.field?.maxValue) {
             this.maxDate = DateFnsUtils.getDate(this.field.maxValue);
         }
-    }
-
-    ngOnDestroy(): void {
-        this.onDestroy$.next();
-        this.onDestroy$.complete();
     }
 }
