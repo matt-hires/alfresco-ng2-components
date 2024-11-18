@@ -16,7 +16,7 @@
  */
 
 import { CommonModule } from '@angular/common';
-import { NgModule, ModuleWithProviders, APP_INITIALIZER } from '@angular/core';
+import { NgModule, ModuleWithProviders, APP_INITIALIZER, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { CoreModule, TRANSLATION_PROVIDER, SearchTextModule } from '@alfresco/adf-core';
 
@@ -127,7 +127,8 @@ import { CategoriesModule } from './category/category.module';
         AlfrescoViewerModule,
         SecurityControlsServiceModule,
         CategoriesModule
-    ]
+    ],
+    schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })
 export class ContentModule {
     static forRoot(): ModuleWithProviders<ContentModule> {

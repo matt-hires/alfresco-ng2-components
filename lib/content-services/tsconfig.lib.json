@@ -2,7 +2,9 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "../../dist/out-tsc",
+    "sourceMap": true,
     "declarationMap": true,
+    "declaration": true,
     "paths": {
       "@alfresco/adf-extensions": ["../../../dist/libs/extensions"],
       "@alfresco/adf-extensions/*": ["../../../dist/libs/extensions/*"],
