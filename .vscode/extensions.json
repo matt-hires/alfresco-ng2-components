@@ -1,5 +1,7 @@
 {
   "recommendations": [
-    "lucono.karma-test-explorer"
+    "lucono.karma-test-explorer",
+    "firefox-devtools.vscode-firefox-debug",
+    "christian-kohler.npm-intellisense"
   ]
 }
